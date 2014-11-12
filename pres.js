@@ -9,9 +9,10 @@ define(['../../client/widget'], function (widget) {
   fftnode.fftSize = 2048;
   // ignore mostly useless high freq bins
   var binCount = fftnode.frequencyBinCount / 2;
+  var sampleCount = fftnode.fftSize;
   
   var fftarray = new Float32Array(binCount);
-  var audioarray = new Float32Array(fftnode.fftSize);
+  var audioarray = new Float32Array(sampleCount);
   
   var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozUserMedia || navigator.msGetUserMedia;
   getUserMedia.call(navigator, {audio: true}, function getUserMediaSuccess(stream) {
@@ -31,16 +32,17 @@ define(['../../client/widget'], function (widget) {
     var mathbox = mathBox(element, {
       cameraControls: true,
       controlClass: ThreeBox.OrbitControls,
+      camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10000),
       scale: 1
     }).start();
     
     mathbox.viewport({
       type: 'cartesian',
-      range: [[-2, 2], [-2, 2], [0, binCount]],
+      range: [[-2, 2], [-2, 2], [0, sampleCount]],
       scale: [1, 1, 1]
     });
     mathbox.camera({
-      orbit: 4.0,
+      orbit: 3.5,
       phi: Math.PI * 0.9,
       theta: Math.PI * 0.05,
     });
@@ -74,16 +76,30 @@ define(['../../client/widget'], function (widget) {
     });
     
     // wave
-    mathbox.curve({
-      id: 'wave',
-      n: binCount,
-      live: true,
-      domain: [0, 1],
-      expression: function (x, i) {
-        return [0, audioarray[i], i * 1];
-      },
-      lineWidth: 2,
-    })
+    function docurve(id, color, func) {
+      mathbox.curve({
+        id: id,
+        color: color,
+        n: sampleCount,
+        live: true,
+        domain: [0, Math.PI * 40],
+        expression: func,
+        lineWidth: 2,
+      })
+    }
+    function ammod(x) {
+      return 1.0 + x * 1.0;
+    }
+    docurve('modulatingam', 0x000000, function (x, i) {
+      var aval = ammod(audioarray[i]);
+      return [0, aval, i * 1];
+    }); 
+    docurve('am', 0x0077FF, function (x, i) {
+      var aval = ammod(audioarray[i]);
+      var s = Math.sin(x);
+      var c = Math.cos(x);
+      return [aval * s, aval * c, i * 1];
+    }); 
     
     var mbscript = [];
     var mbdirector = new MathBox.Director(mathbox, mbscript);
