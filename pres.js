@@ -130,7 +130,7 @@ define(['../../client/widget'], function (widget) {
     mathbox.viewport({
       type: 'cartesian',
       range: [[-2, 2], [-2, 2], [-timeRangeScale, timeRangeScale]],
-      scale: [1*vs, 1*vs, timeRangeScale*vs]
+      scale: [-1*vs, 1*vs, timeRangeScale*vs]
     });
     mathbox.camera({
       orbit: 6,
@@ -139,23 +139,29 @@ define(['../../client/widget'], function (widget) {
     });
     mathbox.transition(500);
     
+    function axisi(v) { return v == 2 ? 'I' : ''; }
+    function axisq(v) { return v == 2 ? 'Q' : ''; }
     mathbox.axis({
       id: 'iaxis',
-      axis: 0,
-      color: 0x777777,
-      ticks: 3,
-      lineWidth: 2,
-      size: .05,
-      arrow: false,
-    });
-    mathbox.axis({
-      id: 'qaxis',
       axis: 1,
       color: 0x777777,
       ticks: 3,
       lineWidth: 2,
       size: .05,
       arrow: false,
+      labels: false,
+      formatter: axisi
+    });
+    mathbox.axis({
+      id: 'qaxis',
+      axis: 0,
+      color: 0x777777,
+      ticks: 3,
+      lineWidth: 2,
+      size: .05,
+      arrow: false,
+      labels: false,
+      formatter: axisq
     });
     mathbox.axis({
       id: 'taxis',
@@ -194,8 +200,10 @@ define(['../../client/widget'], function (widget) {
       [
         'Analytic signals',
         'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid. The modulation works exactly the same way ',
+        ['set', '#iaxis', {labels: true}],
+        ['set', '#qaxis', {labels: true}],
         ['animate', 'camera', {
-          phi: Math.PI * 0.8,
+          phi: Math.PI * 0.7,
           theta: 0.05
         }, {
           delay: 0,
