@@ -287,6 +287,30 @@ define(['../../client/widget'], function (widget) {
         ksiginterp: 0,
       }
     }
+    function dountwist(id, radiansPerSample, array) {
+      return {
+        id: id,
+        color: 0x000000,
+        n: array.length / 2,
+        live: true,
+        domain: [-timeRangeScale, timeRangeScale],
+        expression: function (x, i) {
+          var vi = array[i * 2];
+          var vq = array[i * 2 + 1];
+          var phase = i * this.get('kfreq');
+          var s = sin(phase);
+          var c = cos(phase);
+          return [
+            s * vi + c * vq,
+            c * vi - s * vq,
+            x
+          ];
+        },
+        lineWidth: 2,
+        kfreq: radiansPerSample,
+      }
+    }
+
     mathbox.curve(docurve('modulatingam', 0x000000, ambuf));
     mathbox.curve(docurve('product', 0x0077FF, product));
     
@@ -508,12 +532,47 @@ define(['../../client/widget'], function (widget) {
         ['add', 'curve', docurve('audioh', 0x00DD00, audioh)],
         ['add', 'curve', docurve('audiol', 0xFF0000, audiol)],
       ],
-      [
-        'The Fourier transform',
-        'TODO text',
-        ['remove', '#audioh'],
-        ['remove', '#audiol'],
-      ],
+      (function () {
+        var counthalf = 10;
+        var freqscale = Math.PI / counthalf * 0.2;
+        function forfourier(f) {
+          var out = [];
+          for (var i = -counthalf; i <= counthalf; i++) {
+            out.push(f(i, 'fourier' + i));
+          }
+          return out;
+        }
+        return [
+          'The Fourier transform',
+          'TODO text',
+          ['remove', '#audioh'],
+          ['remove', '#audiol'],
+          ['remove', '#qaxis'],
+          ['animate', 'camera', {
+            phi: Math.PI * 0.7,
+            theta: 0.2
+          }, {
+            delay: 0,
+            duration: 1000
+          }],
+        ].concat(forfourier(function (i, id) {
+          return ['add', 'curve', dountwist(id, 0, dsbbuf)];
+        })).concat(forfourier(function (i, id) {
+          return ['animate', '#' + id, {
+            mathPosition: [i, 0, 0]
+          }, {
+            delay: 1000,
+            duration: 1000,
+          }];
+        })).concat(forfourier(function (i, id) {
+          return ['animate', '#' + id, {
+            kfreq: i * freqscale
+          }, {
+            delay: 2000,
+            duration: 1000,
+          }];
+        }));
+      }())
       //['TODO: Relationship of real signals to analytic signals', ''],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
