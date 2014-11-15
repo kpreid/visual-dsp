@@ -2,6 +2,10 @@
 define(['../../client/widget'], function (widget) {
   'use strict';
   
+  var sin = Math.sin;
+  var cos = Math.cos;
+  var TWOPI = Math.PI * 2;
+  
   var ctx = new webkitAudioContext();
   var sampleRate = ctx.sampleRate;
   var fftnode = ctx.createAnalyser();
@@ -25,8 +29,55 @@ define(['../../client/widget'], function (widget) {
     d.show();
   });
   
-  ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
   
+  function IQPlotter(array) {
+    return function (x, i) {
+      return [array[i * 2 + 1], array[i * 2], i * 1];
+    };
+  }
+  
+  function AMModulator(audioin, iqout) {
+    var limit = Math.min(audioin.length, iqout.length / 2);
+    return function amModulator() {
+      for (var i = 0, j = 0; i < limit; i++, j += 2) {
+        iqout[j] = 1 + audioin[i];
+        iqout[j+1] = 0;
+      }
+    };
+  }
+  
+  function Rotator(iqin, iqout, radiansPerSample) {
+    var limit = Math.min(iqin.length, iqout.length);
+    return function rotator() {
+      var phase = 0;
+      for (var i = 0; i < limit; i += 2) {
+        var s = sin(phase);
+        var c = cos(phase);
+        iqout[i]   = c * iqin[i] - s * iqin[i+1];
+        iqout[i+1] = s * iqin[i] + c * iqin[i+1];
+        phase += radiansPerSample;
+      }
+      //phase = phase % TWOPI;
+    };
+  }
+  
+  function Graph(blocks) {
+    var limit = blocks.length;
+    return function graph() {
+      for (var i = 0; i < limit; i++) {
+        blocks[i]();
+      }
+    };
+  }
+  
+  var ambuf = new Float32Array(sampleCount * 2);
+  var amout = new Float32Array(sampleCount * 2);
+  var g = Graph([
+    AMModulator(audioarray, ambuf),
+    Rotator(ambuf, amout, 0.2)
+  ]);
+  
+  ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
   function goMathbox() {
     var element = document.getElementById('mb');
     var mathbox = mathBox(element, {
@@ -87,19 +138,8 @@ define(['../../client/widget'], function (widget) {
         lineWidth: 2,
       })
     }
-    function ammod(x) {
-      return 1.0 + x * 1.0;
-    }
-    docurve('modulatingam', 0x000000, function (x, i) {
-      var aval = ammod(audioarray[i]);
-      return [0, aval, i * 1];
-    }); 
-    docurve('am', 0x0077FF, function (x, i) {
-      var aval = ammod(audioarray[i]);
-      var s = Math.sin(x);
-      var c = Math.cos(x);
-      return [aval * s, aval * c, i * 1];
-    }); 
+    docurve('modulatingam', 0x000000, IQPlotter(ambuf));
+    docurve('am', 0x0077FF, IQPlotter(amout));
     
     var mbscript = [];
     var mbdirector = new MathBox.Director(mathbox, mbscript);
@@ -118,6 +158,8 @@ define(['../../client/widget'], function (widget) {
       }
     }
     audioarray.set(audioTriggerArray.subarray(i - outLengthHalf, i + outLengthHalf));
+    
+    g();
   }
   
   function loop() {
