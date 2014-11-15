@@ -32,7 +32,7 @@ define(['../../client/widget'], function (widget) {
   
   function IQPlotter(array) {
     return function (x, i) {
-      return [array[i * 2 + 1], array[i * 2], i * 1];
+      return [array[i * 2 + 1], array[i * 2], x];
     };
   }
   
@@ -60,6 +60,17 @@ define(['../../client/widget'], function (widget) {
       //phase = phase % TWOPI;
     };
   }
+  function Interpolator(iqin, iqout) {
+    var interpolation = Math.floor(iqout.length / iqin.length);
+    var limit = iqout.length;
+    return function interpolator() {
+      for (var j = 0; j < limit; j += 2) {
+        var i = Math.floor(j / (interpolation*2))*2;
+        iqout[j]   = iqin[i];
+        iqout[j+1] = iqin[i + 1];
+      }
+    };
+  }
   
   function Graph(blocks) {
     var limit = blocks.length;
@@ -70,11 +81,14 @@ define(['../../client/widget'], function (widget) {
     };
   }
   
+  var interpolation = 10;
   var ambuf = new Float32Array(sampleCount * 2);
-  var amout = new Float32Array(sampleCount * 2);
+  var hfbuf = new Float32Array(interpolation * sampleCount * 2);
+  var amout = new Float32Array(interpolation * sampleCount * 2);
   var g = Graph([
     AMModulator(audioarray, ambuf),
-    Rotator(ambuf, amout, 0.2)
+    Interpolator(ambuf, hfbuf),
+    Rotator(hfbuf, amout, 0.3)
   ]);
   
   ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
@@ -87,13 +101,16 @@ define(['../../client/widget'], function (widget) {
       scale: 1
     }).start();
     
+    var timeRangeScale = 4;
+    
+    var vs = 0.4;
     mathbox.viewport({
       type: 'cartesian',
-      range: [[-2, 2], [-2, 2], [0, sampleCount]],
-      scale: [1, 1, 1]
+      range: [[-2, 2], [-2, 2], [-timeRangeScale, timeRangeScale]],
+      scale: [1*vs, 1*vs, timeRangeScale*vs]
     });
     mathbox.camera({
-      orbit: 3.5,
+      orbit: 6,
       phi: Math.PI * 0.9,
       theta: Math.PI * 0.05,
     });
@@ -127,19 +144,19 @@ define(['../../client/widget'], function (widget) {
     });
     
     // wave
-    function docurve(id, color, func) {
+    function docurve(id, color, array) {
       mathbox.curve({
         id: id,
         color: color,
-        n: sampleCount,
+        n: array.length / 2,
         live: true,
-        domain: [0, Math.PI * 40],
-        expression: func,
+        domain: [-timeRangeScale, timeRangeScale],
+        expression: IQPlotter(array),
         lineWidth: 2,
       })
     }
-    docurve('modulatingam', 0x000000, IQPlotter(ambuf));
-    docurve('am', 0x0077FF, IQPlotter(amout));
+    docurve('modulatingam', 0x000000, ambuf);
+    docurve('am', 0x0077FF, amout);
     
     var mbscript = [];
     var mbdirector = new MathBox.Director(mathbox, mbscript);
