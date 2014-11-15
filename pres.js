@@ -182,8 +182,18 @@ define(['../../client/widget'], function (widget) {
     docurve('modulatingam', 0x000000, ambuf);
     docurve('am', 0x0077FF, amout);
     
-    var mbscript = [
+    var step0 = [
+      'Amplitude modulation (AM)',
+      'This is a depiction of amplitude modulation as commonly understood. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.'
+    ]
+    var script = [
       [
+        'Amplitude modulation (AM)',
+        'The problem with this picture, for our purposes, is that the math is messy. For example, if you were trying to demodulate this, every time the signal crosses zero, you have no data because the audio was multiplied by zero. Of course, in reality the carrier frequency is immensely higher than the audio frequency, so it\'s easy to average over that. It\'s not that it\'s infeasible to work this way — you can, in exact analogy to analog RF electronics, but rather that there\'s something else you can do which is much more elegant all around.'
+      ],
+      [
+        'Analytic signals',
+        'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid. The modulation works exactly the same way ',
         ['animate', 'camera', {
           phi: Math.PI * 0.8,
           theta: 0.05
@@ -200,6 +210,8 @@ define(['../../client/widget'], function (widget) {
         //}],
       ],
     ];
+    var mbscript = script.map(function(step) { return step.slice(2); });
+    console.log(mbscript);
     var mbdirector = new MathBox.Director(mathbox, mbscript);
     
     document.body.addEventListener('keydown', function (event) {
@@ -211,9 +223,16 @@ define(['../../client/widget'], function (widget) {
       }
       console.log(event.keyCode, mbdirector.step);
     }, false);
-    setTimeout(function() {
-      mbdirector.forward();
-    }, 1000);
+    //setTimeout(function() {
+    //  mbdirector.forward();
+    //}, 1000);
+    
+    setInterval(function() {
+      var step = mbdirector.step;
+      //console.log(step);
+      document.getElementById('slidetitle').textContent = (step ? script[step - 1] : step0)[0];
+      document.getElementById('slidecaption').textContent = (step ? script[step - 1] : step0)[1];
+    }, 20);
   }
   
   var paused = false;
