@@ -4,6 +4,7 @@ define(['../../client/widget'], function (widget) {
   
   var sin = Math.sin;
   var cos = Math.cos;
+  var PI = Math.PI;
   var TWOPI = Math.PI * 2;
   
   var ctx = new webkitAudioContext();
@@ -88,7 +89,7 @@ define(['../../client/widget'], function (widget) {
   var g = Graph([
     AMModulator(audioarray, ambuf),
     Interpolator(ambuf, hfbuf),
-    Rotator(hfbuf, amout, 0.3)
+    Rotator(hfbuf, amout, 0.15)
   ]);
   
   ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
@@ -111,9 +112,10 @@ define(['../../client/widget'], function (widget) {
     });
     mathbox.camera({
       orbit: 6,
-      phi: Math.PI * 0.9,
-      theta: Math.PI * 0.05,
+      phi: PI,
+      theta: 0.05
     });
+    mathbox.transition(500);
     
     mathbox.axis({
       id: 'iaxis',
@@ -158,8 +160,38 @@ define(['../../client/widget'], function (widget) {
     docurve('modulatingam', 0x000000, ambuf);
     docurve('am', 0x0077FF, amout);
     
-    var mbscript = [];
+    var mbscript = [
+      [
+        ['animate', 'camera', {
+          phi: Math.PI * 0.8,
+          theta: 0.05
+        }, {
+          delay: 0,
+          duration: 6000
+        }],
+        //['animate', 'camera', {
+        //  phi: Math.PI * 0.6,
+        //  //theta: Math.PI * 0.3
+        //}, {
+        //  delay: 4000,
+        //  duration: 2000
+        //}],
+      ],
+    ];
     var mbdirector = new MathBox.Director(mathbox, mbscript);
+    
+    document.body.addEventListener('keydown', function (event) {
+      if (event.keyCode == 39) {
+        mbdirector.forward();
+      }
+      if (event.keyCode == 37) {
+        mbdirector.back();
+      }
+      console.log(event.keyCode, mbdirector.step);
+    }, false);
+    setTimeout(function() {
+      mbdirector.forward();
+    }, 1000);
   }
   
   var audioTriggerArray = new Float32Array(fftnode.fftSize);
