@@ -84,9 +84,13 @@ define(['../../client/widget'], function (widget) {
     var limit = iqout.length;
     return function interpolator() {
       for (var j = 0; j < limit; j += 2) {
-        var i = Math.floor(j / (interpolation*2))*2;
-        iqout[j]   = iqin[i];
-        iqout[j+1] = iqin[i + 1];
+        var position = j / (interpolation*2);
+        var index = Math.floor(position);
+        var fraction = position - index;
+        var complement = 1 - fraction;
+        var i = index * 2;
+        iqout[j]   = iqin[i] * complement + iqin[i+2] * fraction;
+        iqout[j+1] = iqin[i + 1] * complement + iqin[i+3] * fraction;
       }
     };
   }
