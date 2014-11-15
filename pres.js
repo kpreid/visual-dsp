@@ -120,7 +120,7 @@ define(['../../client/widget'], function (widget) {
       scale: 1
     }).start();
     
-    var timeRangeScale = 4;
+    var timeRangeScale = 6;
     
     var vs = 0.4;
     mathbox.viewport({
