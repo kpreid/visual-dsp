@@ -31,12 +31,16 @@ define(['../../client/widget'], function (widget) {
   });
   
   
-  function IQPlotter(array) {
-    return function (x, i) {
-      return [array[i * 2 + 1], array[i * 2], x];
+  function ToComplex(audioin, iqout) {
+    var limit = Math.min(audioin.length, iqout.length / 2);
+    return function toComplex() {
+      for (var i = 0, j = 0; i < limit; i++, j += 2) {
+        iqout[j] = audioin[i];
+        iqout[j+1] = 0;
+      }
     };
   }
-  
+
   function AMModulator(audioin, iqout) {
     var limit = Math.min(audioin.length, iqout.length / 2);
     return function amModulator() {
@@ -65,17 +69,28 @@ define(['../../client/widget'], function (widget) {
     };
   }
   
-  function DelayScale(in1, out, delay, scale) {
-    var start = Math.min(out.length, Math.max(0, delay));
-    var limit = Math.min(Math.max(0, in1.length - delay), out.length);
+  var logged = false;
+  function FIRFilter(in1, out, step, delay, taps) {
+    var ntaps = taps.length;
+    var valdelay = delay * step;
+    var start = Math.min(out.length, Math.max(0, valdelay));
+    var limit = Math.min(Math.max(0, in1.length - ntaps + valdelay), out.length);
     var end = out.length;
-    return function adder() {
+    //console.log('FIRFilter', taps, 0, start, limit, end);
+    return function filterer() {
       var i = 0;
       for (; i < start; i++) {
         out[i] = 0;
       }
       for (; i < limit; i++) {
-        out[i] = in1[i - delay] * scale;
+        var accum = 0;
+        for (var j = 0; j < ntaps * step; j += step) {
+          //if (!logged) console.log(i - delay + j, in1[i - delay + j], Math.floor(j / step)), taps[Math.floor(j / step)];
+          accum += in1[i - valdelay + j] * taps[Math.floor(j / step)];
+        }
+        //if (!logged) console.log('logged', accum);
+        //logged = true;
+        out[i] = accum;
       }
       for (; i < end; i++) {
         out[i] = 0;
@@ -151,34 +166,45 @@ define(['../../client/widget'], function (widget) {
     };
   }
   
+  var filterOuterCoeff = 1/3;
+  var filterInnerCoeff = 2/3;
+  
+  // firdes.low_pass(1, 44100, 1000, 2000)
+  var audio_lowpass = [-0.00114539940841496, -0.0007444394868798554, 2.997766569023952e-05, 0.0019656415097415447, 0.005893126595765352, 0.01247603353112936, 0.02201135642826557, 0.034287191927433014, 0.04853496327996254, 0.06349427998065948, 0.07758451253175735, 0.0891534835100174, 0.09675595909357071, 0.09940661489963531, 0.09675595909357071, 0.0891534835100174, 0.07758451253175735, 0.06349427998065948, 0.04853496327996254, 0.034287191927433014, 0.02201135642826557, 0.01247603353112936, 0.005893126595765352, 0.0019656415097415447, 2.997766569023952e-05, -0.0007444394868798554, -0.00114539940841496];
+  var audio_highpass = [0.0010463938815519214, 0.0006800920236855745, -2.738647162914276e-05, -0.0017957363743335009, -0.005383739247918129, -0.011397636495530605, -0.020108748227357864, -0.03132349252700806, -0.04433972015976906, -0.05800599604845047, -0.07087830454111099, -0.08144728094339371, -0.08839261531829834, 0.9104118347167969, -0.08839261531829834, -0.08144728094339371, -0.07087830454111099, -0.05800599604845047, -0.04433972015976906, -0.03132349252700806, -0.020108748227357864, -0.011397636495530605, -0.005383739247918129, -0.0017957363743335009, -2.738647162914276e-05, 0.0006800920236855745, 0.0010463938815519214];
+  
   var interpolation = 5;
   var chfreq = 0.30;
   var ambuf = new Float32Array(sampleCount * 2);
+  var dsbbuf = new Float32Array(sampleCount * 2);
   var hfbuf = new Float32Array(interpolation * sampleCount * 2);
   var amout = new Float32Array(interpolation * sampleCount * 2);
   var demodrot = new Float32Array(interpolation * sampleCount * 2);
   var product = new Float32Array(interpolation * sampleCount * 2);
+  var audioh = new Float32Array(sampleCount * 2);
+  var audiol = new Float32Array(sampleCount * 2);
   var g = Graph([
     AMModulator(audioarray, ambuf),
     Interpolator(ambuf, hfbuf),
     Rotator(hfbuf, amout, chfreq),
     Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
     Multiply(amout, demodrot, product),
+    ToComplex(audioarray, dsbbuf),
+    FIRFilter(dsbbuf, audiol, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass),
+    FIRFilter(dsbbuf, audioh, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass),
   ]);
   
-  var filterOuterCoeff = 1/3;
-  var filterInnerCoeff = 2/3;
   var twosig1 = new Float32Array(sampleCount * 2);
   var twosig2 = new Float32Array(sampleCount * 2);
   var twosig = new Float32Array(sampleCount * 2);
-  var twosigp = new Float32Array(sampleCount * 2);
-  var twosigm = new Float32Array(sampleCount * 2);
+  var twosigl = new Float32Array(sampleCount * 2);
+  var twosigh = new Float32Array(sampleCount * 2);
   Graph([
     Siggen(twosig1, function() { return 0.3; }),
     Siggen(twosig2, function() { return 10; }),
     Add(twosig1, twosig2, twosig),
-    DelayScale(twosig, twosigp, 2, filterOuterCoeff),  // 2 for complex
-    DelayScale(twosig, twosigm, -2, filterOuterCoeff)
+    FIRFilter(twosig, twosigl, 2, -0, [filterOuterCoeff, filterInnerCoeff, filterOuterCoeff]),  // 2 for complex
+    FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
   ])();
   
   var mbdirector, demodStep = 4;
@@ -242,15 +268,23 @@ define(['../../client/widget'], function (widget) {
     });
     
     // wave
-    function docurve(id, color, array) {
+    function docurve(id, color, array1, array2) {
       return {
         id: id,
         color: color,
-        n: array.length / 2,
+        n: array1.length / 2,
         live: true,
         domain: [-timeRangeScale, timeRangeScale],
-        expression: IQPlotter(array),
+        expression: function (x, i) {
+          var k = this.get('ksiginterp');
+          if (k > 0) {
+            return [array1[i * 2 + 1] * (1-k) + array2[i * 2 + 1] * k, array1[i * 2] * (1-k) + array2[i * 2] * k, x];
+          } else {
+            return [array1[i * 2 + 1], array1[i * 2], x];
+          }
+        },
         lineWidth: 2,
+        ksiginterp: 0,
       }
     }
     mathbox.curve(docurve('modulatingam', 0x000000, ambuf));
@@ -355,11 +389,11 @@ define(['../../client/widget'], function (widget) {
           delay: 500,
           duration: 1000
         }],
-        ['add', 'curve', docurve('twosig', 0x000000, twosig)],
+        ['add', 'curve', docurve('twosig', 0x000000, twosig, twosigl)],
       ],
       [
         'Finite impulse response (FIR) filters',
-        'I\'m going to cover a simple and widely useful class of digital filters called finite impulse response filters. FIR filters operate by taking delayed copies of the input signal, scaling them, and adding them together.',
+        'I\'m going to cover a simple and widely useful class of digital filters called finite impulse response filters. FIR filters operate by taking delayed copies of the input signal, scaling them, and adding them together. In this picture, the copies have amplitudes of one-third, two-thirds, and one-third.',
         ['add', 'curve', docurve('twosigp', 0xFF2222, twosig)],
         ['add', 'curve', docurve('twosign', 0x00EE00, twosig)],
         ['animate', '#twosigp', {
@@ -391,6 +425,88 @@ define(['../../client/widget'], function (widget) {
           duration: 1000,
         }],
       ],
+      [
+        'Low-pass filter',
+        'When those three are added together, the result contains mostly the low-frequency component of the input signal and not the high-frequency component. This kind of filter is called a low-pass filter. It\'s not a very good one — good filters have systematically chosen coefficients for the scaling, and have many more of them. These coefficients, I should mention, are called the _taps_ of the filter. The name comes from the notion of feeding the input samples into a delay line, then taking the values from taps off the line at successive positions simultaneously.',
+        ['animate', '#twosig', {
+          ksiginterp: 1,
+          mathScale: [1, 1, 1],
+        }, {
+          duration: 1000,
+        }],
+        ['animate', '#twosigp', {
+          mathScale: [0, 0, 1],
+          opacity: 0,
+        }, {
+          duration: 1000,
+        }],
+        ['animate', '#twosign', {
+          mathScale: [0, 0, 1],
+          opacity: 0,
+        }, {
+          duration: 1000,
+        }],
+      ],
+      [
+        'High-pass filter',
+        'If instead of adding the three copies we subtract the outer ones from the middle one, the filter becomes a high-pass filter, keeping the high-frequency component instead of the low-frequency one.',
+        ['remove', '#twosig'],
+        ['add', 'curve', docurve('twosigh', 0x000000, twosig, twosigh)],
+        ['animate', '#twosigp', {
+          mathScale: [filterOuterCoeff, filterOuterCoeff, 1],
+          opacity: 1,
+        }, {
+          duration: 10,
+        }],
+        ['animate', '#twosign', {
+          mathScale: [filterOuterCoeff, filterOuterCoeff, 1],
+          opacity: 1,
+        }, {
+          duration: 10,
+        }],
+        ['animate', '#twosigp', {
+          mathScale: [-filterOuterCoeff, -filterOuterCoeff, 1],
+        }, {
+          delay: 10,
+          duration: 900,
+        }],
+        ['animate', '#twosign', {
+          mathScale: [-filterOuterCoeff, -filterOuterCoeff, 1],
+        }, {
+          delay: 10,
+          duration: 900,
+        }],
+        ['animate', '#twosigh', {
+          ksiginterp: 1
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+        ['animate', '#twosigp', {
+          mathScale: [0, 0, 1],
+          opacity: 0,
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+        ['animate', '#twosign', {
+          mathScale: [0, 0, 1],
+          opacity: 0,
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+      ],
+      [
+        'Live Filter',
+        'Here\'s the same filters applied to live audio; high-pass in green, low-pass in red.',
+        ['remove', '#twosign'],
+        ['remove', '#twosigp'],
+        ['remove', '#twosigh'],
+        ['add', 'curve', docurve('audio', 0x0000FF, dsbbuf)],
+        ['add', 'curve', docurve('audioh', 0x00DD00, audioh)],
+        ['add', 'curve', docurve('audiol', 0xFF0000, audiol)],
+      ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
@@ -407,7 +523,7 @@ define(['../../client/widget'], function (widget) {
     //setTimeout(function() {
     //  mbdirector.forward();
     //}, 1000);
-    mbdirector.go(script.length - 1);
+    mbdirector.go(script.length);
     
     setInterval(function() {
       var step = mbdirector.step;
