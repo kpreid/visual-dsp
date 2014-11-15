@@ -216,8 +216,17 @@ define(['../../client/widget'], function (widget) {
     }, 1000);
   }
   
+  var paused = false;
+  document.body.addEventListener('keydown', function (event) {
+    if (event.keyCode == 0x20) {
+      paused = !paused;
+    }
+  }, false);
+  
   var audioTriggerArray = new Float32Array(fftnode.fftSize);
   function updateFFT() {
+    if (paused) return;
+    
     fftnode.getFloatFrequencyData(fftarray);
     fftnode.getFloatTimeDomainData(audioTriggerArray);
     var outLengthHalf = Math.floor(audioarray.length / 2);
