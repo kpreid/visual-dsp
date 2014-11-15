@@ -46,6 +46,24 @@ define(['../../client/widget'], function (widget) {
       }
     };
   }
+
+  function FMModulator(audioin, iqout, deviation) {
+    var limit = Math.min(audioin.length, iqout.length / 2);
+    return function fmModulator() {
+      var phase = 0;
+      for (var i = limit/2, j = limit; i < limit; i++, j += 2) {
+        phase += audioin[i] * deviation;
+        iqout[j]   = cos(phase);
+        iqout[j+1] = sin(phase);
+      }
+      phase = 0;
+      for (var i = limit/2 - 1, j = limit - 2; i >= 0; i--, j -= 2) {
+        phase -= audioin[i] * deviation;
+        iqout[j]   = cos(phase);
+        iqout[j+1] = sin(phase);
+      }
+    };
+  }
   
   function Rotator(iqin, iqout, radiansPerSample) {
     var limit = Math.min(iqin.length, iqout.length);
