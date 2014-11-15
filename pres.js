@@ -9,7 +9,7 @@ define(['../../client/widget'], function (widget) {
   fftnode.fftSize = 2048;
   // ignore mostly useless high freq bins
   var binCount = fftnode.frequencyBinCount / 2;
-  var sampleCount = fftnode.fftSize;
+  var sampleCount = 128;  // can be up to fftSize but we want to 'zoom in'
   
   var fftarray = new Float32Array(binCount);
   var audioarray = new Float32Array(sampleCount);
@@ -105,9 +105,19 @@ define(['../../client/widget'], function (widget) {
     var mbdirector = new MathBox.Director(mathbox, mbscript);
   }
   
+  var audioTriggerArray = new Float32Array(fftnode.fftSize);
   function updateFFT() {
     fftnode.getFloatFrequencyData(fftarray);
-    fftnode.getFloatTimeDomainData(audioarray);
+    fftnode.getFloatTimeDomainData(audioTriggerArray);
+    var outLengthHalf = Math.floor(audioarray.length / 2);
+    var limit = fftnode.fftSize - outLengthHalf - 1;
+    // rising edge trigger
+    for (var i = outLengthHalf; i < limit; i++) {
+      if (audioTriggerArray[i] <= 0 && audioTriggerArray[i + 1] > 0) {
+        break;
+      }
+    }
+    audioarray.set(audioTriggerArray.subarray(i - outLengthHalf, i + outLengthHalf));
   }
   
   function loop() {
