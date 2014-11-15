@@ -74,7 +74,7 @@ define(['../../client/widget'], function (widget) {
     var ntaps = taps.length;
     var valdelay = delay * step;
     var start = Math.min(out.length, Math.max(0, valdelay));
-    var limit = Math.min(Math.max(0, in1.length - ntaps + valdelay), out.length);
+    var limit = Math.min(Math.max(0, in1.length - ntaps - valdelay), out.length);
     var end = out.length;
     //console.log('FIRFilter', taps, 0, start, limit, end);
     return function filterer() {
@@ -86,7 +86,7 @@ define(['../../client/widget'], function (widget) {
         var accum = 0;
         for (var j = 0; j < ntaps * step; j += step) {
           //if (!logged) console.log(i - delay + j, in1[i - delay + j], Math.floor(j / step)), taps[Math.floor(j / step)];
-          accum += in1[i - valdelay + j] * taps[Math.floor(j / step)];
+          accum += in1[i + valdelay + j] * taps[Math.floor(j / step)];
         }
         //if (!logged) console.log('logged', accum);
         //logged = true;
@@ -497,6 +497,7 @@ define(['../../client/widget'], function (widget) {
           duration: 1000,
         }],
       ],
+      //['TODO: Discuss filtering for sample rate conversion', ''],
       [
         'Live Filter',
         'Here\'s the same filters applied to live audio; high-pass in green, low-pass in red.',
@@ -507,6 +508,13 @@ define(['../../client/widget'], function (widget) {
         ['add', 'curve', docurve('audioh', 0x00DD00, audioh)],
         ['add', 'curve', docurve('audiol', 0xFF0000, audiol)],
       ],
+      [
+        'The Fourier transform',
+        'TODO text',
+        ['remove', '#audioh'],
+        ['remove', '#audiol'],
+      ],
+      //['TODO: Relationship of real signals to analytic signals', ''],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
