@@ -65,6 +65,31 @@ define(['../../client/widget'], function (widget) {
     };
   }
   
+  function DelayScale(in1, out, delay, scale) {
+    var start = Math.min(out.length, Math.max(0, delay));
+    var limit = Math.min(Math.max(0, in1.length - delay), out.length);
+    var end = out.length;
+    return function adder() {
+      var i = 0;
+      for (; i < start; i++) {
+        out[i] = 0;
+      }
+      for (; i < limit; i++) {
+        out[i] = in1[i - delay] * scale;
+      }
+      for (; i < end; i++) {
+        out[i] = 0;
+      }
+    };
+  }
+  function Add(in1, in2, out) {
+    var limit = Math.min(in1.length, in2.length, out.length);
+    return function adder() {
+      for (var i = 0; i < limit; i += 1) {
+        out[i] = in1[i] + in2[i];
+      }
+    };
+  }
   function Multiply(iqin1, iqin2, iqout) {
     var limit = Math.min(iqin1.length, iqin2.length, iqout.length);
     return function rotator() {
@@ -126,7 +151,8 @@ define(['../../client/widget'], function (widget) {
     };
   }
   
-  var interpolation = 10;
+  var interpolation = 5;
+  var chfreq = 0.30;
   var ambuf = new Float32Array(sampleCount * 2);
   var hfbuf = new Float32Array(interpolation * sampleCount * 2);
   var amout = new Float32Array(interpolation * sampleCount * 2);
@@ -135,10 +161,25 @@ define(['../../client/widget'], function (widget) {
   var g = Graph([
     AMModulator(audioarray, ambuf),
     Interpolator(ambuf, hfbuf),
-    Rotator(hfbuf, amout, 0.15),
-    Siggen(demodrot, function() { return (mbdirector ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -0.15; }),
+    Rotator(hfbuf, amout, chfreq),
+    Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
     Multiply(amout, demodrot, product),
   ]);
+  
+  var filterOuterCoeff = 1/3;
+  var filterInnerCoeff = 2/3;
+  var twosig1 = new Float32Array(sampleCount * 2);
+  var twosig2 = new Float32Array(sampleCount * 2);
+  var twosig = new Float32Array(sampleCount * 2);
+  var twosigp = new Float32Array(sampleCount * 2);
+  var twosigm = new Float32Array(sampleCount * 2);
+  Graph([
+    Siggen(twosig1, function() { return 0.3; }),
+    Siggen(twosig2, function() { return 10; }),
+    Add(twosig1, twosig2, twosig),
+    DelayScale(twosig, twosigp, 2, filterOuterCoeff),  // 2 for complex
+    DelayScale(twosig, twosigm, -2, filterOuterCoeff)
+  ])();
   
   var mbdirector, demodStep = 4;
   ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
@@ -213,8 +254,7 @@ define(['../../client/widget'], function (widget) {
       }
     }
     mathbox.curve(docurve('modulatingam', 0x000000, ambuf));
-    mathbox.curve(docurve('am', 0x0077FF, product));
-    mathbox.curve();
+    mathbox.curve(docurve('product', 0x0077FF, product));
     
     var step0 = [
       'Amplitude modulation (AM)',
@@ -245,12 +285,112 @@ define(['../../client/widget'], function (widget) {
       ],
       [
         'Frequency selection and demodulation',
-        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency — the helix is wound the other way.',
+        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency. This is a negative frequency — the helix is wound the other way. You can also call it the complex conjugate of the carrier, the number with the imaginary component negated. This cancels out the original carrier wave, giving us the modulating signal again. In general, this technique allows you to change the frequency of an arbitrary signal, adding or subtracting an offset.',
         ['add', 'curve', docurve('demodrot', 0xFF0000, demodrot)],
         //['animate', '#demodrot', { /* dummy */ }, {
         //  duration: 1000
         //}]
-      ]
+      ],
+      [
+        'Sampling and the Nyquist frequency',
+        'Up until now, the pictures I\'ve been showing you have had solid lines. This is an accurate depiction of analog signals, but in DSP we are working with only a finite amount of data — the signal is sampled at fixed time intervals, producing a sequence of numbers. This graph is the exact same signal showing only the sample points. Generally, you want the sampling rate to be as slow as possible, to minimize the computation needed. However, there is a fundamental limit known as the Nyquist frequency.',
+        ['remove', '#demodrot'],
+        ['set', '#product', {
+          points: true,
+          line: false,
+        }],
+        ['animate', 'camera', {
+          phi: Math.PI,
+          theta: 0.05
+        }, {
+          delay: 0,
+          duration: 1000
+        }],
+      ],
+      [
+        'Sampling and the Nyquist frequency',
+        'What you are seeing here is the instantaneous value of a sampled signal. The signal is a sinusoid with a frequency which is continuously increasing. As it increases, it appears to reverse, because the frequency is so high that it completes more than half of a complete cycle between every two samples. This is the Nyquist frequency — one-half of the sampling rate. A signal of some frequency f, when sampled, is exactly the same as a signal of frequency f plus the sampling rate.',
+        ['remove', '#product'],
+        ['animate', 'camera', {
+          phi: Math.PI / 2,
+          theta: 0.00
+        }, {
+          delay: 0,
+          duration: 1000
+        }],
+        ['add', 'curve', {
+          id: 'clockface',
+          color: 0x000000,
+          n: 2,
+          live: true,
+          points: true,
+          line: true,
+          domain: [-timeRangeScale, timeRangeScale],
+          expression: (function() { var frame = 0, phase = 0; return function (x, n) {
+            if (n == 0) {
+              return [0, 0, 0];
+            } else {
+              frame++;
+              var t = frame / 2000;
+              var rate = 0.5 * (1 + sin(PI * (t % 1 - 0.5))) + Math.floor(t);
+              phase += (rate * 1.016) * TWOPI;
+              return [sin(phase) * 3, cos(phase) * 3, 0];
+            }
+          }})(),
+          lineWidth: 2,
+        }]
+      ],
+      [
+        'Sampling and the Nyquist frequency',
+        'Frequencies in digital signal processing are points on a circle — they are modulo the sampling frequency. We usually think of them as having a range of plus or minus the Nyquist frequency, because the symmetry is useful. But since nothing in the math and physics respects that limit, we have to do it ourselves, by _filtering_. In a software-defined receiver, we filter using analog circuits to remove frequencies above the Nyquist frequency before sampling the signal. This removes the ambiguity and allows us to treat the frequencies in our digital signal as if they were not circular.',
+      ],
+      [
+        'Filtering',
+        'Filtering is also useful for sampled digital signals, to allow us to reduce or increase the sample rate, or to separate a particular signal from nearby irrelevant signals and noise. Digital filters can be much more precise than analog filters, and they can be adjusted by changing data rather than changing circuits. To illustrate filtering, here is an example signal which is the combination — the sum — of two components of different frequencies. It\'s very far from the nice helixes we\'ve seen so far.',
+        ['remove', '#clockface'],
+        ['animate', 'camera', {
+          phi: Math.PI,
+          theta: 0.00
+        }, {
+          delay: 500,
+          duration: 1000
+        }],
+        ['add', 'curve', docurve('twosig', 0x000000, twosig)],
+      ],
+      [
+        'Finite impulse response (FIR) filters',
+        'I\'m going to cover a simple and widely useful class of digital filters called finite impulse response filters. FIR filters operate by taking delayed copies of the input signal, scaling them, and adding them together.',
+        ['add', 'curve', docurve('twosigp', 0xFF2222, twosig)],
+        ['add', 'curve', docurve('twosign', 0x00EE00, twosig)],
+        ['animate', '#twosigp', {
+          mathPosition: [0, 0, timeRangeScale / sampleCount * 2],
+        }, {
+          duration: 1000,
+        }],
+        ['animate', '#twosign', {
+          mathPosition: [0, 0, -timeRangeScale / sampleCount * 2],
+        }, {
+          duration: 1000,
+        }],
+        ['animate', '#twosig', {
+          mathScale: [filterInnerCoeff, filterInnerCoeff, 1],
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+        ['animate', '#twosigp', {
+          mathScale: [filterOuterCoeff, filterOuterCoeff, 1],
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+        ['animate', '#twosign', {
+          mathScale: [filterOuterCoeff, filterOuterCoeff, 1],
+        }, {
+          delay: 1000,
+          duration: 1000,
+        }],
+      ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
@@ -267,7 +407,7 @@ define(['../../client/widget'], function (widget) {
     //setTimeout(function() {
     //  mbdirector.forward();
     //}, 1000);
-    mbdirector.go(3);
+    mbdirector.go(script.length - 1);
     
     setInterval(function() {
       var step = mbdirector.step;
