@@ -707,6 +707,16 @@ define(['../../client/widget'], function (widget) {
         'Real signals',
         'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
       ],
+      [
+        'End',
+        'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
+        ['animate', 'camera', {
+          theta: Math.PI * 0.1
+        }, {
+          delay: 0,
+          duration: 2000
+        }],
+      ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
