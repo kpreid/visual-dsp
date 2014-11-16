@@ -678,16 +678,18 @@ define(['../../client/widget'], function (widget) {
     document.body.addEventListener('keydown', function (event) {
       if (event.keyCode == 39) {
         mbdirector.forward();
-      }
-      if (event.keyCode == 37) {
+      } else if (event.keyCode == 37) {
         mbdirector.back();
+      } else {
+        return;
       }
+      g();
       console.log('Now at slide', mbdirector.step);
     }, false);
     //setTimeout(function() {
     //  mbdirector.forward();
     //}, 1000);
-    mbdirector.go(script.length - 1);
+    //mbdirector.go(script.length - 1);
     
     setInterval(function() {
       var step = mbdirector.step;
@@ -711,20 +713,26 @@ define(['../../client/widget'], function (widget) {
   
   var audioTriggerArray = new Float32Array(fftnode.fftSize);
   function updateFFT() {
-    if (paused) return;
+    if (!paused) {
     
-    fftnode.getFloatFrequencyData(fftarray);
-    fftnode.getFloatTimeDomainData(audioTriggerArray);
-    var outLengthHalf = Math.floor(audioarray.length / 2);
-    var limit = fftnode.fftSize - outLengthHalf - 1;
-    // rising edge trigger
-    for (var i = outLengthHalf; i < limit; i++) {
-      if (audioTriggerArray[i] <= 0 && audioTriggerArray[i + 1] > 0) {
-        break;
+      fftnode.getFloatFrequencyData(fftarray);
+      fftnode.getFloatTimeDomainData(audioTriggerArray);
+      var outLengthHalf = Math.floor(audioarray.length / 2);
+      var limit = fftnode.fftSize - outLengthHalf - 1;
+      // rising edge trigger
+      for (var i = outLengthHalf; i < limit; i++) {
+        if (audioTriggerArray[i] <= 0 && audioTriggerArray[i + 1] > 0) {
+          break;
+        }
       }
-    }
-    audioarray.set(audioTriggerArray.subarray(i - outLengthHalf, i + outLengthHalf));
+      audioarray.set(audioTriggerArray.subarray(i - outLengthHalf, i + outLengthHalf));
     
+    }
+    
+    if (!paused || (mbdirector && mbdirector.step == demodStep)) {
+      g();
+    }
+
     if (leveltrigger) {
       for (var i = audioarray.length - 1; i >= 0; i--) {
         if (audioarray[i] > 0.5) {
@@ -735,8 +743,6 @@ define(['../../client/widget'], function (widget) {
         }
       }
     }
-    
-    g();
   }
   
   function loop() {
