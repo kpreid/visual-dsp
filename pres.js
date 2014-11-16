@@ -682,7 +682,7 @@ define(['../../client/widget'], function (widget) {
       if (event.keyCode == 37) {
         mbdirector.back();
       }
-      console.log('Now at step ', mbdirector.step);
+      console.log('Now at slide', mbdirector.step);
     }, false);
     //setTimeout(function() {
     //  mbdirector.forward();
@@ -697,9 +697,15 @@ define(['../../client/widget'], function (widget) {
   }
   
   var paused = false;
+  var leveltrigger = false;
   document.body.addEventListener('keydown', function (event) {
     if (event.keyCode == 0x20) {
       paused = !paused;
+    }
+    if (event.keyCode == 'T'.charCodeAt(0)) {
+      leveltrigger = true;
+      paused = false;
+      console.log('leveltrigger');
     }
   }, false);
   
@@ -718,6 +724,17 @@ define(['../../client/widget'], function (widget) {
       }
     }
     audioarray.set(audioTriggerArray.subarray(i - outLengthHalf, i + outLengthHalf));
+    
+    if (leveltrigger) {
+      for (var i = audioarray.length - 1; i >= 0; i--) {
+        if (audioarray[i] > 0.5) {
+          leveltrigger = false;
+          paused = true;
+          console.log('triggered');
+          break;
+        }
+      }
+    }
     
     g();
   }
