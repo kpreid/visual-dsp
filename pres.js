@@ -269,6 +269,7 @@ define(['../../client/widget'], function (widget) {
     
     // wave
     function docurve(id, color, array1, array2) {
+      var outbuf = [0, 0, 0];
       return {
         id: id,
         color: color,
@@ -278,16 +279,22 @@ define(['../../client/widget'], function (widget) {
         expression: function (x, i) {
           var k = this.get('ksiginterp');
           if (k > 0) {
-            return [array1[i * 2 + 1] * (1-k) + array2[i * 2 + 1] * k, array1[i * 2] * (1-k) + array2[i * 2] * k, x];
+            outbuf[0] = array1[i * 2 + 1] * (1-k) + array2[i * 2 + 1] * k
+            outbuf[1] = array1[i * 2] * (1-k) + array2[i * 2] * k
+            outbuf[2] = x;
           } else {
-            return [array1[i * 2 + 1], array1[i * 2], x];
+            outbuf[0] = array1[i * 2 + 1]
+            outbuf[1] = array1[i * 2]
+            outbuf[2] = x;
           }
+          return outbuf;
         },
         lineWidth: 2,
         ksiginterp: 0,
       }
     }
     function dountwist(id, radiansPerSample, array) {
+      var outbuf = [0, 0, 0];
       return {
         id: id,
         color: 0x0000FF,
@@ -301,17 +308,18 @@ define(['../../client/widget'], function (widget) {
           var s = sin(phase);
           var c = cos(phase);
           var scale = 1;
-          return [
-            scale * (s * vi + c * vq),
-            scale * (c * vi - s * vq),
-            x
-          ];
+          outbuf[0] = scale * (s * vi + c * vq);
+          outbuf[1] = scale * (c * vi - s * vq);
+          outbuf[2] = x;
+          return outbuf;
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
       }
     }
     function dountwistsum(id, radiansPerSample, array) {
+      var zero = [0, 0, 0];
+      var outbuf = [0, 0, 0];
       return {
         id: id,
         color: 0xFF0000,
@@ -320,7 +328,7 @@ define(['../../client/widget'], function (widget) {
         domain: [-timeRangeScale, timeRangeScale],
         expression: function (x, i) {
           if (i == 0) {
-            return [0, 0, 0];
+            return zero;
           }
           var freq = this.get('kfreq');
           var sumi = 0;
@@ -336,7 +344,10 @@ define(['../../client/widget'], function (widget) {
             sumi += (c * vi - s * vq);
           }
           var scale = 40 / limit;
-          return [scale * sumq, scale * sumi, 0];
+          outbuf[0] = scale * sumq;
+          outbuf[1] = scale * sumi;
+          outbuf[2] = 0;
+          return outbuf;
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
@@ -426,17 +437,24 @@ define(['../../client/widget'], function (widget) {
           points: true,
           line: true,
           domain: [-timeRangeScale, timeRangeScale],
-          expression: (function() { var frame = 0, phase = 0; return function (x, n) {
-            if (n == 0) {
-              return [0, 0, 0];
-            } else {
-              frame++;
-              var t = frame / 2000;
-              var rate = 0.5 * (1 + sin(PI * (t % 1 - 0.5))) + Math.floor(t);
-              phase += (rate * 1.016) * TWOPI;
-              return [sin(phase) * 3, cos(phase) * 3, 0];
-            }
-          }})(),
+          expression: (function() { 
+            var frame = 0, phase = 0;
+            var zero = [0, 0, 0];
+            var outbuf = [0, 0, 0];
+            return function (x, n) {
+              if (n == 0) {
+                return zero;
+              } else {
+                frame++;
+                var t = frame / 2000;
+                var rate = 0.5 * (1 + sin(PI * (t % 1 - 0.5))) + Math.floor(t);
+                phase += (rate * 1.016) * TWOPI;
+                outbuf[0] = sin(phase) * 3;
+                outbuf[1] = cos(phase) * 3;
+                return outbuf;
+              }
+            };
+          })(),
           lineWidth: 2,
         }]
       ],
