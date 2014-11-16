@@ -687,6 +687,7 @@ define(['../../client/widget'], function (widget) {
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
     
+    var baseTitle = document.title;
     document.body.addEventListener('keydown', function (event) {
       if (event.keyCode == 39) {
         mbdirector.forward();
@@ -695,13 +696,29 @@ define(['../../client/widget'], function (widget) {
       } else {
         return;
       }
+      writeFragment();
       g();
-      console.log('Now at slide', mbdirector.step);
+      //console.log('Now at slide', mbdirector.step);
     }, false);
     //setTimeout(function() {
     //  mbdirector.forward();
     //}, 1000);
     //mbdirector.go(script.length - 1);
+    
+    function readFragment() {
+      var fragment = window.location.hash;
+      if (fragment[0] !== "#") return;
+      mbdirector.go(parseInt(fragment.substr(1)));
+      writeFragment();
+    }
+    function writeFragment() {
+      document.title = '(' + mbdirector.step + ') ' + baseTitle;
+      window.history.replaceState(undefined, document.title, '#' + mbdirector.step);
+    }
+    window.addEventListener("popstate", function (event) {
+      readFragment();
+    });
+    readFragment();
     
     setInterval(function() {
       var step = mbdirector.step;
