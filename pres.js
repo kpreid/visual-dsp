@@ -206,7 +206,7 @@ define(['../../client/widget'], function (widget) {
     FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
   ])();
   
-  var mbdirector, demodStep = 4;
+  var mbdirector, demodStep = 5;
   ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
   function goMathbox() {
     var element = document.getElementById('mb');
@@ -354,9 +354,6 @@ define(['../../client/widget'], function (widget) {
       }
     }
 
-    mathbox.curve(docurve('modulatingam', 0x000000, ambuf));
-    mathbox.curve(docurve('product', 0x0077FF, product));
-    
     var counthalf = 10;
     var freqscale = Math.PI / counthalf * 0.1;
     function forfourier(f) {
@@ -367,14 +364,23 @@ define(['../../client/widget'], function (widget) {
       return out;
     }
     
+    mathbox.curve(docurve('audio', 0x0000FF, dsbbuf));
+    
     var step0 = [
-      'Amplitude modulation (AM)',
-      'This is a depiction of amplitude modulation as commonly understood. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.'
-    ]
+      'A Visual Introduction to DSP for SDR',
+      'This presentation is intended to give a tour of DSP topics relevant to implementation of software-defined radios. This is not a complete introduction; if you want to do these things yourself you\'ll probably want a book, or somebody else\'s tutorial. The topics I have selected are those which are either particularly fundamental, or which would benefit from the style of animated graphics used here.'
+    ];
     var script = [
       [
         'Amplitude modulation (AM)',
-        'The problem with this picture, for our purposes, is that the math is messy. For example, if you were trying to demodulate this, every time the signal crosses zero, you have no data because the audio was multiplied by zero. Of course, in reality the carrier frequency is immensely higher than the audio frequency, so it\'s easy to average over that. It\'s not that it\'s infeasible to work this way — you can, in exact analogy to analog RF electronics, but rather that there\'s something else you can do which is much more elegant all around. It doesn\'t matter as much for AM, but I\'m using AM in this picture because it makes good pictures, not because it\'s a good example.'
+        'This is a depiction of amplitude modulation as usually understood — hopefully, you\'ve seen this picture before. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.',
+        ['remove', '#audio'],
+        ['add', 'curve', docurve('modulatingam', 0x000000, ambuf)],
+        ['add', 'curve', docurve('product', 0x0077FF, product)],
+      ],
+      [
+        'Amplitude modulation (AM)',
+        'The problem with this picture, for our purposes, is that the math is messy. For example, if you were trying to demodulate this, every time the signal crosses zero, you have no data because the audio was multiplied by zero. Of course, in reality the carrier frequency is immensely higher than the audio frequency, so it\'s easy to average over that. It\'s not that it\'s infeasible to work this way — you can, in exact analogy to analog RF electronics, but rather that there\'s something else you can do which is much more elegant all around. It doesn\'t matter as much for AM, but I\'m using AM in this picture because it makes good pictures, not because it\'s a good example.',
       ],
       [
         'Analytic signals',
