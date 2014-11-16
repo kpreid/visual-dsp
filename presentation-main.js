@@ -623,7 +623,7 @@ define([], function () {
             theta: 0.2
           }, {
             delay: 0,
-            duration: 1000
+            duration: 2000
           }]
         ].concat(forfourier(function (i, id) {
           return ['add', 'curve', dountwist(id, 0, dsbbuf)];
@@ -641,15 +641,15 @@ define([], function () {
           return ['animate', '#' + id, {
             mathPosition: [i, 0, 0]
           }, {
-            delay: 1000,
-            duration: 1000,
+            delay: 3000,
+            duration: 3000,
           }];
         })).concat(forfourier(function (i, id) {
           return ['animate', '#' + id + 'axis', {
             mathPosition: [i, 0, 0]
           }, {
-            delay: 1000,
-            duration: 1000,
+            delay: 3000,
+            duration: 3000,
           }];
         }));
       }()),
@@ -675,7 +675,7 @@ define([], function () {
             theta: 0.0
           }, {
             delay: 0,
-            duration: 1000
+            duration: 2000
           }]
         ];
       }()),
