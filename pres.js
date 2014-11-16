@@ -1,4 +1,3 @@
-// TODO: remove network module depenency
 define(['../../client/widget'], function (widget) {
   'use strict';
   
@@ -221,6 +220,7 @@ define(['../../client/widget'], function (widget) {
     var timeRangeScale = 6;
     
     var vs = 0.4;
+    var almost_zero_theta = 0.05;
     mathbox.viewport({
       type: 'cartesian',
       range: [[-2, 2], [-2, 2], [-timeRangeScale, timeRangeScale]],
@@ -229,7 +229,7 @@ define(['../../client/widget'], function (widget) {
     mathbox.camera({
       orbit: 6,
       phi: PI,
-      theta: 0.05
+      theta: almost_zero_theta
     });
     mathbox.transition(500);
     
@@ -450,7 +450,7 @@ define(['../../client/widget'], function (widget) {
         ['remove', '#clockface'],
         ['animate', 'camera', {
           phi: Math.PI,
-          theta: 0.00
+          theta: almost_zero_theta
         }, {
           delay: 500,
           duration: 1000
@@ -566,7 +566,7 @@ define(['../../client/widget'], function (widget) {
       //['TODO: Discuss filtering for sample rate conversion', ''],
       [
         'Live Filter',
-        'Here\'s the same filters applied to live audio; high-pass in green, low-pass in red.',
+        'Here\'s some filters applied to the live audio; high-pass in green, low-pass in red.',
         ['remove', '#twosign'],
         ['remove', '#twosigp'],
         ['remove', '#twosigh'],
@@ -575,13 +575,13 @@ define(['../../client/widget'], function (widget) {
         ['add', 'curve', docurve('audiol', 0xFF0000, audiol)],
       ],
       [
-        'The discrete Fourier transform (a.k.a. FFT)',
+        'The discrete Fourier transform',
         'The discrete Fourier transform, commonly referred to as the fast Fourier transform (which is actually the name of an algorithm for computing it), converts a signal in the form of an array of samples over time — which is what we\'ve been working with so far — into an array of samples over _frequency_. This enables visualization and analysis of an unknown signal, and can also be used to implement filters.',
         ['remove', '#audioh'],
         ['remove', '#audiol'],
         ['animate', 'camera', {
           phi: Math.PI * 1.0,
-          theta: 0.05
+          theta: almost_zero_theta
         }, {
           delay: 0,
           duration: 1000
@@ -589,8 +589,8 @@ define(['../../client/widget'], function (widget) {
       ],
       (function () {
         return [
-          'The discrete Fourier transform (a.k.a. FFT)',
-          'First, let\'s have a large number of copies of the input signal.',
+          'The discrete Fourier transform',
+          'First, let\'s have a large number of copies of the input signal. In reality, we would have a number equal to the length of the input array, but for this illustration ' + (counthalf * 2 + 1) + ' will do.',
           ['remove', '#iaxis'],
           ['remove', '#qaxis'],
           ['remove', '#audio'],
@@ -631,7 +631,7 @@ define(['../../client/widget'], function (widget) {
       }()),
       (function () {
         return [
-          'The discrete Fourier transform (a.k.a. FFT)',
+          'The discrete Fourier transform',
           'Then we multiply the signals by sinusoids with equally spaced frequencies. The copy remaining at the center has frequency zero, so it is unchanged. As we saw earlier, the effect of this is that a signal with the equal and opposite frequency will be “untwisted”, becoming a signal with constant phase — that is, it does not rotate around the axis.',
         ].concat(forfourier(function (i, id) {
           return ['animate', '#' + id, {
@@ -644,7 +644,7 @@ define(['../../client/widget'], function (widget) {
       }()),
       (function () {
         return [
-          'The discrete Fourier transform (a.k.a. FFT)',
+          'The discrete Fourier transform',
           'Now if we look at these signals end-on, discarding the time information, we can see which ones are least twisted. These are the closest matches to the frequency components in the original signal!',
           ['animate', 'camera', {
             phi: Math.PI * 0.5,
@@ -657,8 +657,20 @@ define(['../../client/widget'], function (widget) {
       }()),
       (function () {
         return [
-          'The discrete Fourier transform (a.k.a. FFT)',
-          'The final step is to sum these signals over time. Where the frequency doesn\'t match, the samples cancel each other out, so the output values are close to zero. Where the frequency does match, the samples combine and produce a large output value.',
+          'The discrete Fourier transform',
+          'The final step is to sum these signals over time. Where the frequency doesn\'t match, the samples cancel each other out, so the output values are close to zero. Where the frequency does match, the samples combine and produce a large output value. At this point we have a complete DFT. If we took the red lines above, oriented them in the same direction (discarding the phase), and made the lengths logarithmic, you would then have a spectrogram, exactly as a spectrum analyzer or SDR receiver application displays.',
+        ].concat(forfourier(function (i, id) {
+          return ['add', 'curve', dountwistsum(id + 'sum', i * freqscale, dsbbuf)];
+        })).concat(forfourier(function (i, id) {
+          return ['set', '#' + id + 'sum', {
+            mathPosition: [i, 0, 0]
+          }];
+        }));
+      }()),
+      (function () {
+        return [
+          'The fast Fourier transform (FFT)',
+          'The fast Fourier transform is an algorithm for implementing the DFT efficiently — the naïve implementation I have described here is quadratic in the length of the input. ',
         ].concat(forfourier(function (i, id) {
           return ['add', 'curve', dountwistsum(id + 'sum', i * freqscale, dsbbuf)];
         })).concat(forfourier(function (i, id) {
