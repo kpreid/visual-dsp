@@ -1,4 +1,4 @@
-define(['../../client/widget'], function (widget) {
+define([], function () {
   'use strict';
   
   var sin = Math.sin;
