@@ -637,7 +637,7 @@ define(['../../client/widget'], function (widget) {
             kfreq: i * freqscale
           }, {
             delay: 0,
-            duration: 1000,
+            duration: 7000,
           }];
         }));
       }()),
