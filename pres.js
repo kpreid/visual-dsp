@@ -290,7 +290,7 @@ define(['../../client/widget'], function (widget) {
     function dountwist(id, radiansPerSample, array) {
       return {
         id: id,
-        color: 0x000000,
+        color: 0x0000FF,
         n: array.length / 2,
         live: true,
         domain: [-timeRangeScale, timeRangeScale],
@@ -300,11 +300,43 @@ define(['../../client/widget'], function (widget) {
           var phase = i * this.get('kfreq');
           var s = sin(phase);
           var c = cos(phase);
+          var scale = 1;
           return [
-            s * vi + c * vq,
-            c * vi - s * vq,
+            scale * (s * vi + c * vq),
+            scale * (c * vi - s * vq),
             x
           ];
+        },
+        lineWidth: 2,
+        kfreq: radiansPerSample,
+      }
+    }
+    function dountwistsum(id, radiansPerSample, array) {
+      return {
+        id: id,
+        color: 0xFF0000,
+        n: 2,
+        live: true,
+        domain: [-timeRangeScale, timeRangeScale],
+        expression: function (x, i) {
+          if (i == 0) {
+            return [0, 0, 0];
+          }
+          var freq = this.get('kfreq');
+          var sumi = 0;
+          var sumq = 0;
+          var limit = array.length / 2;
+          for (var i = 0; i < limit; i++) {
+            var vi = array[i * 2];
+            var vq = array[i * 2 + 1];
+            var phase = i * freq;
+            var s = sin(phase);
+            var c = cos(phase);
+            sumq += (s * vi + c * vq);
+            sumi += (c * vi - s * vq);
+          }
+          var scale = 40 / limit;
+          return [scale * sumq, scale * sumi, 0];
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
@@ -313,6 +345,16 @@ define(['../../client/widget'], function (widget) {
 
     mathbox.curve(docurve('modulatingam', 0x000000, ambuf));
     mathbox.curve(docurve('product', 0x0077FF, product));
+    
+    var counthalf = 10;
+    var freqscale = Math.PI / counthalf * 0.1;
+    function forfourier(f) {
+      var out = [];
+      for (var i = -counthalf; i <= counthalf; i++) {
+        out.push(f(i, 'fourier' + i));
+      }
+      return out;
+    }
     
     var step0 = [
       'Amplitude modulation (AM)',
@@ -532,31 +574,44 @@ define(['../../client/widget'], function (widget) {
         ['add', 'curve', docurve('audioh', 0x00DD00, audioh)],
         ['add', 'curve', docurve('audiol', 0xFF0000, audiol)],
       ],
+      [
+        'The discrete Fourier transform (a.k.a. FFT)',
+        'The discrete Fourier transform, commonly referred to as the fast Fourier transform (which is actually the name of an algorithm for computing it), converts a signal in the form of an array of samples over time — which is what we\'ve been working with so far — into an array of samples over _frequency_. This enables visualization and analysis of an unknown signal, and can also be used to implement filters.',
+        ['remove', '#audioh'],
+        ['remove', '#audiol'],
+        ['remove', '#qaxis'],
+        ['animate', 'camera', {
+          phi: Math.PI * 1.0,
+          theta: 0.05
+        }, {
+          delay: 0,
+          duration: 1000
+        }],
+      ],
       (function () {
-        var counthalf = 10;
-        var freqscale = Math.PI / counthalf * 0.2;
-        function forfourier(f) {
-          var out = [];
-          for (var i = -counthalf; i <= counthalf; i++) {
-            out.push(f(i, 'fourier' + i));
-          }
-          return out;
-        }
         return [
-          'The Fourier transform',
-          'TODO text',
-          ['remove', '#audioh'],
-          ['remove', '#audiol'],
-          ['remove', '#qaxis'],
+          'The discrete Fourier transform (a.k.a. FFT)',
+          'First, let\'s have a large number of copies of the input signal.',
+          ['remove', '#audio'],
           ['animate', 'camera', {
             phi: Math.PI * 0.7,
             theta: 0.2
           }, {
             delay: 0,
             duration: 1000
-          }],
+          }]
         ].concat(forfourier(function (i, id) {
           return ['add', 'curve', dountwist(id, 0, dsbbuf)];
+        })).concat(forfourier(function (i, id) {
+          return ['add', 'axis', {
+            id: id + 'axis',
+            axis: 2,
+            color: 0x777777,
+            ticks: 3,
+            lineWidth: 2,
+            size: .05,
+            arrow: true,
+          }];
         })).concat(forfourier(function (i, id) {
           return ['animate', '#' + id, {
             mathPosition: [i, 0, 0]
@@ -565,14 +620,52 @@ define(['../../client/widget'], function (widget) {
             duration: 1000,
           }];
         })).concat(forfourier(function (i, id) {
-          return ['animate', '#' + id, {
-            kfreq: i * freqscale
+          return ['animate', '#' + id + 'axis', {
+            mathPosition: [i, 0, 0]
           }, {
-            delay: 2000,
+            delay: 1000,
             duration: 1000,
           }];
         }));
-      }())
+      }()),
+      (function () {
+        return [
+          'The discrete Fourier transform (a.k.a. FFT)',
+          'Then we multiply the signals by sinusoids with equally spaced frequencies. The copy remaining at the center has frequency zero, so it is unchanged. As we saw earlier, the effect of this is that a signal with the equal and opposite frequency will be “untwisted”, becoming a signal with constant phase — that is, it does not rotate around the axis.',
+        ].concat(forfourier(function (i, id) {
+          return ['animate', '#' + id, {
+            kfreq: i * freqscale
+          }, {
+            delay: 0,
+            duration: 1000,
+          }];
+        }));
+      }()),
+      (function () {
+        return [
+          'The discrete Fourier transform (a.k.a. FFT)',
+          'Now if we look at these signals end-on, discarding the time information, we can see which ones are least twisted. These are the closest matches to the frequency components in the original signal!',
+          ['animate', 'camera', {
+            phi: Math.PI * 0.5,
+            theta: 0.0
+          }, {
+            delay: 0,
+            duration: 1000
+          }]
+        ];
+      }()),
+      (function () {
+        return [
+          'The discrete Fourier transform (a.k.a. FFT)',
+          'The final step is to sum these signals over time. Where the frequency doesn\'t match, the samples cancel each other out, so the output values are close to zero. Where the frequency does match, the samples combine and produce a large output value.',
+        ].concat(forfourier(function (i, id) {
+          return ['add', 'curve', dountwistsum(id + 'sum', i * freqscale, dsbbuf)];
+        })).concat(forfourier(function (i, id) {
+          return ['set', '#' + id + 'sum', {
+            mathPosition: [i, 0, 0]
+          }];
+        }));
+      }()),
       //['TODO: Relationship of real signals to analytic signals', ''],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
@@ -590,7 +683,7 @@ define(['../../client/widget'], function (widget) {
     //setTimeout(function() {
     //  mbdirector.forward();
     //}, 1000);
-    mbdirector.go(script.length);
+    mbdirector.go(script.length - 1);
     
     setInterval(function() {
       var step = mbdirector.step;
