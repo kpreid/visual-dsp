@@ -367,7 +367,7 @@ define(['../../client/widget'], function (widget) {
       ],
       [
         'Analytic signals',
-        'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid. The modulation works exactly the same way — multiplying the complex carrier by the real audio scales the magnitude of the carrier. (We will see later how this picture corresponds to physical radio signals.)',
+        'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid — the real part is a sine and the imaginary part is a cosine. The modulation works exactly the same way — multiplying the complex carrier by the real audio scales the magnitude of the carrier. (We will see later how this picture corresponds to physical radio signals.)',
         ['set', '#iaxis', {labels: true}],
         ['set', '#qaxis', {labels: true}],
         ['animate', 'camera', {
@@ -579,7 +579,6 @@ define(['../../client/widget'], function (widget) {
         'The discrete Fourier transform, commonly referred to as the fast Fourier transform (which is actually the name of an algorithm for computing it), converts a signal in the form of an array of samples over time — which is what we\'ve been working with so far — into an array of samples over _frequency_. This enables visualization and analysis of an unknown signal, and can also be used to implement filters.',
         ['remove', '#audioh'],
         ['remove', '#audiol'],
-        ['remove', '#qaxis'],
         ['animate', 'camera', {
           phi: Math.PI * 1.0,
           theta: 0.05
@@ -592,6 +591,8 @@ define(['../../client/widget'], function (widget) {
         return [
           'The discrete Fourier transform (a.k.a. FFT)',
           'First, let\'s have a large number of copies of the input signal.',
+          ['remove', '#iaxis'],
+          ['remove', '#qaxis'],
           ['remove', '#audio'],
           ['animate', 'camera', {
             phi: Math.PI * 0.7,
@@ -666,7 +667,10 @@ define(['../../client/widget'], function (widget) {
           }];
         }));
       }()),
-      //['TODO: Relationship of real signals to analytic signals', ''],
+      [
+        'Real signals',
+        'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
+      ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
     mbdirector = new MathBox.Director(mathbox, mbscript);
