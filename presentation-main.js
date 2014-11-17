@@ -397,7 +397,7 @@ define([], function () {
       ],
       [
         'Frequency selection and demodulation',
-        'So how do we demodulate this analytic signal? For AM, it turns out we can simply take the magnitude of these complex signals and we\'re done. But in general, the first step is to undo the effect of the carrier.',
+        'So how do we demodulate this analytic signal? For AM, it turns out we can simply take the magnitude of these complex samples and we\'re done. But in the general case, the first step is to undo the effect of the carrier.',
         ['remove', '#modulatingam']
       ],
       [
@@ -469,8 +469,8 @@ define([], function () {
         'Frequencies in digital signal processing are points on a circle — they are modulo the sampling frequency. We usually think of them as having a range of plus or minus the Nyquist frequency, because the symmetry is useful. But since nothing in the math and physics respects that limit, we have to do it ourselves, by _filtering_. In a software-defined receiver, we filter using analog circuits to remove frequencies above the Nyquist frequency before sampling the signal. This removes the ambiguity and allows us to treat the frequencies in our digital signal as if they were not circular.',
       ],
       [
-        'Filtering',
-        'Filtering is also useful for sampled digital signals, to allow us to reduce or increase the sample rate, or to separate a particular signal from nearby irrelevant signals and noise. Digital filters can be much more precise than analog filters, and they can be adjusted by changing data rather than changing circuits. To illustrate filtering, here is an example signal which is the combination — the sum — of two components of different frequencies. It\'s very far from the nice helixes we\'ve seen so far.',
+        'Digital filtering',
+        'Filtering is also useful for sampled digital signals, to allow us to reduce or increase the sample rate, or to separate a particular signal from nearby irrelevant signals and noise. Digital filters can be much more precise than analog filters, and they can be adjusted by changing data rather than changing circuits. To illustrate filtering, here is an example signal which is the combination — the sum — of two components of different frequencies. It looks very far from the nice helixes we\'ve seen so far, but you can easily see the two components. Practically, good digital filters can extract signals that you just can\'t see at all from a plot like this.',
         ['remove', '#clockface'],
         ['animate', 'camera', {
           phi: Math.PI,
@@ -483,7 +483,11 @@ define([], function () {
       ],
       [
         'Finite impulse response (FIR) filters',
-        'I\'m going to cover a simple and widely useful class of digital filters called finite impulse response filters. FIR filters operate by taking delayed copies of the input signal, scaling them, and adding them together. In this picture, the copies have amplitudes of one-third, two-thirds, and one-third.',
+        'A simple and widely useful class of digital filters is finite impulse response filters. FIR filters operate by taking delayed copies of the input signal, scaling them, and adding them together — a sort of carefully designed moving average.',
+      ],
+      [
+        'Finite impulse response (FIR) filters',
+        'In this picture, the copies have amplitudes of one-third, two-thirds, and one-third.',
         ['add', 'curve', docurve('twosigp', 0xFF2222, twosig)],
         ['add', 'curve', docurve('twosign', 0x00EE00, twosig)],
         ['animate', '#twosigp', {
@@ -517,7 +521,7 @@ define([], function () {
       ],
       [
         'Low-pass filter',
-        'When those three are added together, the result contains mostly the low-frequency component of the input signal and not the high-frequency component. This kind of filter is called a low-pass filter. It\'s not a very good one — good filters have systematically chosen coefficients for the scaling, and have many more of them. These coefficients, I should mention, are called the _taps_ of the filter. The name comes from the notion of feeding the input samples into a delay line, then taking the values from taps off the line at successive positions simultaneously.',
+        'When those three are added together, the result contains mostly the low-frequency component of the input signal and not the high-frequency component. This kind of filter is called a low-pass filter. It\'s not a very good one — good filters have systematically chosen coefficients for the scaling, and have many more of them. These coefficients are also called taps, they are the same as the impulse response of the filter, and the count of them is called the filter\'s order.',
         ['animate', '#twosig', {
           ksiginterp: 1,
           mathScale: [1, 1, 1],
@@ -586,6 +590,10 @@ define([], function () {
           delay: 1000,
           duration: 1000,
         }],
+      ],
+      [
+        'Infinite impulse response (IIR) filters',
+        'A so-called infinite impulse response filter works exactly the same way as a finite impulse response filter, except that in addition to summing input samples, it has feedback from its own previous outputs. IIR filters can be more efficient than FIR filters, but have additional hazards such as instability — runaway feedback. As a side note, you may well have used an IIR filter yourself — if you\'ve ever implemented an average like input times 0.1 plus previous output times 0.9, then that\'s an IIR filter of order one.',
       ],
       //['TODO: Discuss filtering for sample rate conversion', ''],
       [
