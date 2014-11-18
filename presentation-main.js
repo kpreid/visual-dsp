@@ -373,7 +373,7 @@ define([], function () {
     var script = [
       [
         'Amplitude modulation (AM)',
-        'This is a depiction of amplitude modulation as usually understood — hopefully, you\'ve seen this picture before. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.',
+        'This is a depiction of amplitude modulation as usually understood — you\'ve probably seen this sort of picture before. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.',
         ['remove', '#audio'],
         ['add', 'curve', docurve('modulatingam', 0x000000, ambuf)],
         ['add', 'curve', docurve('product', 0x0077FF, product)],
@@ -383,8 +383,8 @@ define([], function () {
         'The problem with this picture, for our purposes, is that the math is messy. For example, if you were trying to demodulate this, every time the signal crosses zero, you have no data because the audio was multiplied by zero. Of course, in reality the carrier frequency is immensely higher than the audio frequency, so it\'s easy to average over that. It\'s not that it\'s infeasible to work this way — you can, in exact analogy to analog RF electronics, but rather that there\'s something else you can do which is much more elegant all around. It doesn\'t matter as much for AM, but I\'m using AM in this picture because it makes good pictures, not because it\'s a good example.',
       ],
       [
-        'Analytic signals',
-        'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid — the real part is a sine and the imaginary part is a cosine. The modulation works exactly the same way — multiplying the complex carrier by the real audio scales the magnitude of the carrier. (We will see later how this picture corresponds to physical radio signals.)',
+        'Complex-valued signals',
+        'Here we have a signal which has values which are complex numbers rather than real numbers. The carrier wave is a complex sinusoid — the real part is a sine and the imaginary part is a cosine. On this plot the real and imaginary parts are labeled I and Q — these are the conventional names in signal processing, which stand for "in-phase" and "quadrature". This can also be called an analytic signal, which means roughly that it has this helical structure as opposed to being, say, the real signal we usually think of but rotated into the complex plane. The modulation works exactly the same way as you\'ve already seen — multiplying the complex carrier by the real audio varies the magnitude of the signal. (We will see later how this picture corresponds to physical radio signals.) ',
         ['set', '#iaxis', {labels: true}],
         ['set', '#qaxis', {labels: true}],
         ['animate', 'camera', {
@@ -396,13 +396,13 @@ define([], function () {
         }],
       ],
       [
-        'Frequency selection and demodulation',
+        'Frequency shifting',
         'So how do we demodulate this analytic signal? For AM, it turns out we can simply take the magnitude of these complex samples and we\'re done. But in the general case, the first step is to undo the effect of the carrier.',
         ['remove', '#modulatingam']
       ],
       [
-        'Frequency selection and demodulation',
-        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency. This is a negative frequency — the helix is wound the other way. You can also call it the complex conjugate of the carrier, the number with the imaginary component negated. This cancels out the original carrier wave, giving us the modulating signal again. In general, this technique allows you to change the frequency of an arbitrary signal, adding or subtracting an offset.',
+        'Frequency shifting',
+        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency. This is a negative frequency — the helix is wound the other way. You can also call it the complex conjugate of the carrier, the number with the imaginary component negated. This cancels out the original carrier wave, giving us almost the modulating signal again. In general, this technique allows you to change the frequency of an arbitrary signal, adding or subtracting an offset. When the signal is moved to be centered at zero — zero hertz — it is known as a _baseband_ signal.',
         ['add', 'curve', docurve('demodrot', 0xFF0000, demodrot)],
         //['animate', '#demodrot', { /* dummy */ }, {
         //  duration: 1000
@@ -593,7 +593,7 @@ define([], function () {
       ],
       [
         'Infinite impulse response (IIR) filters',
-        'A so-called infinite impulse response filter works exactly the same way as a finite impulse response filter, except that in addition to summing input samples, it has feedback from its own previous outputs. IIR filters can be more efficient than FIR filters, but have additional hazards such as instability — runaway feedback. As a side note, you may well have used an IIR filter yourself — if you\'ve ever implemented an average like input times 0.1 plus previous output times 0.9, then that\'s an IIR filter of order one.',
+        'A so-called infinite impulse response filter works exactly the same way as a finite impulse response filter, except that in addition to summing input samples, it has feedback from its own previous outputs. IIR filters can be more efficient than FIR filters by having a lower order (fewer taps) but have additional hazards such as instability — runaway feedback. As a side note, you may well have used an IIR filter yourself — if you\'ve ever implemented an average like input times 0.1 plus previous output times 0.9, then that\'s an IIR filter of order one.',
       ],
       //['TODO: Discuss filtering for sample rate conversion', ''],
       [
