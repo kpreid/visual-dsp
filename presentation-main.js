@@ -174,20 +174,26 @@ define([], function () {
   
   var interpolation = 5;
   var chfreq = 0.30;
-  var ambuf = new Float32Array(sampleCount * 2);
+  var modulatingam = new Float32Array(sampleCount * 2);
+  var modulatingfm = new Float32Array(sampleCount * 2);
   var dsbbuf = new Float32Array(sampleCount * 2);
-  var hfbuf = new Float32Array(interpolation * sampleCount * 2);
+  var hfambuf = new Float32Array(interpolation * sampleCount * 2);
+  var hffmbuf = new Float32Array(interpolation * sampleCount * 2);
   var amout = new Float32Array(interpolation * sampleCount * 2);
+  var fmout = new Float32Array(interpolation * sampleCount * 2);
   var demodrot = new Float32Array(interpolation * sampleCount * 2);
   var product = new Float32Array(interpolation * sampleCount * 2);
   var audioh = new Float32Array(sampleCount * 2);
   var audiol = new Float32Array(sampleCount * 2);
   var g = Graph([
-    AMModulator(audioarray, ambuf),
-    Interpolator(ambuf, hfbuf),
-    Rotator(hfbuf, amout, chfreq),
+    AMModulator(audioarray, modulatingam),
+    FMModulator(audioarray, modulatingfm, 0.75),
+    Interpolator(modulatingam, hfambuf),
+    Interpolator(modulatingfm, hffmbuf),
+    Rotator(hfambuf, amout, chfreq),
+    Rotator(hffmbuf, fmout, chfreq),
     Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
-    Multiply(amout, demodrot, product),
+    Multiply(fmout, demodrot, product),
     ToComplex(audioarray, dsbbuf),
     FIRFilter(dsbbuf, audiol, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass),
     FIRFilter(dsbbuf, audioh, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass),
@@ -206,7 +212,7 @@ define([], function () {
     FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
   ])();
   
-  var mbdirector, demodStep = 5;
+  var mbdirector, demodStep = 6;
   ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
   function goMathbox() {
     var element = document.getElementById('mb');
@@ -375,8 +381,8 @@ define([], function () {
         'Amplitude modulation (AM)',
         'This is a depiction of amplitude modulation as usually understood — you\'ve probably seen this sort of picture before. The modulating audio signal, in black, is offset above zero and then used to control the amplitude of the carrier signal — that is, they are multiplied — and the result is the signal shown in blue.',
         ['remove', '#audio'],
-        ['add', 'curve', docurve('modulatingam', 0x000000, ambuf)],
-        ['add', 'curve', docurve('product', 0x0077FF, product)],
+        ['add', 'curve', docurve('modulatingam', 0x000000, modulatingam)],
+        ['add', 'curve', docurve('amout', 0x0077FF, amout)],
       ],
       [
         'Amplitude modulation (AM)',
@@ -396,13 +402,20 @@ define([], function () {
         }],
       ],
       [
-        'Frequency shifting',
-        'So how do we demodulate this analytic signal? For AM, it turns out we can simply take the magnitude of these complex samples and we\'re done. But in the general case, the first step is to undo the effect of the carrier.',
-        ['remove', '#modulatingam']
+        'Frequency modulation (FM)',
+        'This is what frequency modulation, FM, looks like in the same setting. The blue curve looks like the conventional picture of frequency modulation; you can see the cycles being closer together and farther apart here. The black line is again the signal without the carrier wave, but this time instead of moving radially, varying amplitude, it is moving around the circle — varying the frequency, the speed of rotation. When it\'s moving in the same direction as the carrier, the frequency is higher, and when it\'s moving in the opposite direction, the frequency is lower.',
+        ['remove', '#amout, #modulatingam'],
+        ['add', 'curve', docurve('modulatingfm', 0x000000, modulatingfm)],
+        ['add', 'curve', docurve('product', 0x0077FF, product)],
       ],
       [
         'Frequency shifting',
-        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency. This is a negative frequency — the helix is wound the other way. You can also call it the complex conjugate of the carrier, the number with the imaginary component negated. This cancels out the original carrier wave, giving us almost the modulating signal again. In general, this technique allows you to change the frequency of an arbitrary signal, adding or subtracting an offset. When the signal is moved to be centered at zero — zero hertz — it is known as a _baseband_ signal.',
+        'If we want to receive and demodulate this signal, we\'d like to get rid of that high-frequency carrier wave. In a real radio rather than this picture built for readability, the carrier frequency is immensely higher than the bandwidth of the actual signal, and we\'d like to not deal with the processing requirements of that high frequency — and also to be able to tune anywhere on the radio spectrum and treat the signals the same way.',
+        ['remove', '#modulatingfm']
+      ],
+      [
+        'Frequency shifting',
+        'We do this by multiplying the signal by another complex sinusoid, shown in red, of equal and opposite frequency. This is a negative frequency — the helix is wound the other way. You can also call it the complex conjugate of the carrier, the number with the imaginary component negated. This cancels out the original carrier wave. In general, this technique allows you to change the frequency of an arbitrary signal, adding or subtracting an offset. When the signal is moved to be centered at zero — zero hertz — it is known as a _baseband_ signal.',
         ['add', 'curve', docurve('demodrot', 0xFF0000, demodrot)],
         //['animate', '#demodrot', { /* dummy */ }, {
         //  duration: 1000
