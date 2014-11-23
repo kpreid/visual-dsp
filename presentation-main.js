@@ -1,4 +1,4 @@
-define([], function () {
+(function () {
   'use strict';
   
   var sin = Math.sin;
@@ -213,7 +213,7 @@ define([], function () {
   ])();
   
   var mbdirector, demodStep = 6;
-  ThreeBox.preload(['../../client/mathbox.glsl.html'], goMathbox);
+  ThreeBox.preload(['deps/MathBox.glsl.html'], goMathbox);
   function goMathbox() {
     var element = document.getElementById('mb');
     var mathbox = mathBox(element, {
@@ -834,6 +834,4 @@ define([], function () {
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
-  
-  //widget.createWidgets(root, context, document);
-});
+})();
