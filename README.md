@@ -10,7 +10,6 @@ Topics covered:
 * Frequency shifting.
 * Sampling rates and the Nyquist limit.
 * The discrete Fourier transform (DFT) and fast Fourier transform (FFT).
-and sampling rate/Nyquist.
 
 History
 -------
