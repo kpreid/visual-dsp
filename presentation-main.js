@@ -15,7 +15,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var PI = Math.PI;
   var TWOPI = Math.PI * 2;
   
-  var ctx = new webkitAudioContext();
+  var ctx = new (window.AudioContext || window.webkitAudioContext)();
   var sampleRate = ctx.sampleRate;
   var fftnode = ctx.createAnalyser();
   fftnode.smoothingTimeConstant = 0;
@@ -27,7 +27,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var fftarray = new Float32Array(binCount);
   var audioarray = new Float32Array(sampleCount);
   
-  var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozUserMedia || navigator.msGetUserMedia;
+  var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
   getUserMedia.call(navigator, {audio: true}, function getUserMediaSuccess(stream) {
     var source = ctx.createMediaStreamSource(stream);
     source.connect(fftnode);
