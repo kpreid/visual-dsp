@@ -15,7 +15,32 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var PI = Math.PI;
   var TWOPI = Math.PI * 2;
   
-  var ctx = new (window.AudioContext || window.webkitAudioContext)();
+  function reportFailure(error) {
+    var d = document.createElement('dialog');
+    d.textContent = String(error);
+    d.className = 'dialog-on-top';
+
+    var b = d.appendChild(document.createElement('button'));
+    b.textContent = 'OK';
+    b.addEventListener('click', function (event) {
+      d.parentNode.removeChild(d);
+    }, false);
+
+    document.body.appendChild(d);
+    if (d.show) { // <dialog> supported
+      d.show();
+    } else {
+      // nothing needed, will be auto-visible
+    }
+  }
+  
+  var AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) {
+    reportFailure('This browser does not support Web Audio API.');
+    return;
+  }
+  
+  var ctx = new AudioContext();
   var sampleRate = ctx.sampleRate;
   var fftnode = ctx.createAnalyser();
   fftnode.smoothingTimeConstant = 0;
@@ -28,16 +53,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var audioarray = new Float32Array(sampleCount);
   
   var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
-  getUserMedia.call(navigator, {audio: true}, function getUserMediaSuccess(stream) {
-    var source = ctx.createMediaStreamSource(stream);
-    source.connect(fftnode);
-  }, function getUserMediaFailure(e) {
-    var d = document.createElement('dialog');
-    d.textContent = e;
-    document.body.appendChild(d);
-    d.show();
-  });
-  
+  if (!getUserMedia) {
+    reportFailure('This browser does not support getUserMedia. No signal will be shown.');
+    // don't abort, we can at least show the slides
+  } else {
+    getUserMedia.call(navigator, {audio: true}, function getUserMediaSuccess(stream) {
+      var source = ctx.createMediaStreamSource(stream);
+      source.connect(fftnode);
+      
+      if (navigator.mozGetUserMedia) {  // TODO debug further
+        reportFailure('Warning: Firefox seems to stop running the audio processing after a few seconds. I am in the process of investigating further. Sorry.');
+      }
+    }, reportFailure);
+  }
   
   function ToComplex(audioin, iqout) {
     var limit = Math.min(audioin.length, iqout.length / 2);

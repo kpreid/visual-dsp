@@ -15,6 +15,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     body {
       font-face: 'Hoefler Text', serif;
     }
+    .dialog-on-top {
+      position: fixed;
+      margin: auto;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      
+      /* styles sufficient to make it look OK in non-<dialog>-supporting browsers */
+      display: table;
+      border: .2em solid black;
+      padding: 1em;
+      background: white;
+      
+      border-radius: .2em;
+      max-width: 20em;
+    }
   </style>
   <meta name="viewport" content="width=device-width">
 </head><body style="height: 100%; margin: 0;">
