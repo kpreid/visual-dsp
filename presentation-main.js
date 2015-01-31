@@ -61,9 +61,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       var source = ctx.createMediaStreamSource(stream);
       source.connect(fftnode);
       
-      if (navigator.mozGetUserMedia) {  // TODO debug further
-        reportFailure('Warning: Firefox seems to stop running the audio processing after a few seconds. I am in the process of investigating further. Sorry.');
-      }
+      // https://bugzilla.mozilla.org/show_bug.cgi?id=934512
+      // http://stackoverflow.com/q/22860468/99692
+      // Firefox destroys the media stream source even though it is in use by the audio graph. As a workaround, make a powerless global reference to it.
+      window[Math.random()] = function() { console.log(source); }
     }, reportFailure);
   }
   
