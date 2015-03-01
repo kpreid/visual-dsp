@@ -10,6 +10,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 (function () {
   'use strict';
   
+  var DSP = VisualDSP_DSP;
+  
   var sin = Math.sin;
   var cos = Math.cos;
   var PI = Math.PI;
@@ -68,141 +70,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     }, reportFailure);
   }
   
-  function ToComplex(audioin, iqout) {
-    var limit = Math.min(audioin.length, iqout.length / 2);
-    return function toComplex() {
-      for (var i = 0, j = 0; i < limit; i++, j += 2) {
-        iqout[j] = audioin[i];
-        iqout[j+1] = 0;
-      }
-    };
-  }
-
-  function AMModulator(audioin, iqout) {
-    var limit = Math.min(audioin.length, iqout.length / 2);
-    return function amModulator() {
-      for (var i = 0, j = 0; i < limit; i++, j += 2) {
-        iqout[j] = 1 + audioin[i];
-        iqout[j+1] = 0;
-      }
-    };
-  }
-
-  function FMModulator(audioin, iqout, deviation) {
-    var limit = Math.min(audioin.length, iqout.length / 2);
-    return function fmModulator() {
-      var phase = 0;
-      for (var i = limit/2, j = limit; i < limit; i++, j += 2) {
-        phase += audioin[i] * deviation;
-        iqout[j]   = cos(phase);
-        iqout[j+1] = sin(phase);
-      }
-      phase = 0;
-      for (var i = limit/2 - 1, j = limit - 2; i >= 0; i--, j -= 2) {
-        phase -= audioin[i] * deviation;
-        iqout[j]   = cos(phase);
-        iqout[j+1] = sin(phase);
-      }
-    };
-  }
-  
-  var logged = false;
-  function FIRFilter(in1, out, step, delay, taps) {
-    var ntaps = taps.length;
-    var valdelay = delay * step;
-    var start = Math.min(out.length, Math.max(0, valdelay));
-    var limit = Math.min(Math.max(0, in1.length - ntaps - valdelay), out.length);
-    var end = out.length;
-    //console.log('FIRFilter', taps, 0, start, limit, end);
-    return function filterer() {
-      var i = 0;
-      for (; i < start; i++) {
-        out[i] = 0;
-      }
-      for (; i < limit; i++) {
-        var accum = 0;
-        for (var j = 0; j < ntaps * step; j += step) {
-          //if (!logged) console.log(i - delay + j, in1[i - delay + j], Math.floor(j / step)), taps[Math.floor(j / step)];
-          accum += in1[i + valdelay + j] * taps[Math.floor(j / step)];
-        }
-        //if (!logged) console.log('logged', accum);
-        //logged = true;
-        out[i] = accum;
-      }
-      for (; i < end; i++) {
-        out[i] = 0;
-      }
-    };
-  }
-  function Add(in1, in2, out) {
-    var limit = Math.min(in1.length, in2.length, out.length);
-    return function adder() {
-      for (var i = 0; i < limit; i += 1) {
-        out[i] = in1[i] + in2[i];
-      }
-    };
-  }
-  function Multiply(iqin1, iqin2, iqout) {
-    var limit = Math.min(iqin1.length, iqin2.length, iqout.length);
-    return function rotator() {
-      for (var i = 0; i < limit; i += 2) {
-        iqout[i]   = iqin1[i] * iqin2[i] - iqin1[i+1] * iqin2[i+1];
-        iqout[i+1] = iqin1[i+1] * iqin2[i] + iqin1[i] * iqin2[i+1];
-      }
-    };
-  }
-  function Rotator(iqin, iqout, radiansPerSample) {
-    var limit = Math.min(iqin.length, iqout.length);
-    return function rotator() {
-      var phase = 0;
-      for (var i = 0; i < limit; i += 2) {
-        var s = sin(phase);
-        var c = cos(phase);
-        iqout[i]   = c * iqin[i] - s * iqin[i+1];
-        iqout[i+1] = s * iqin[i] + c * iqin[i+1];
-        phase += radiansPerSample;
-      }
-      //phase = phase % TWOPI;
-    };
-  }
-  function Siggen(iqout, radiansPerSampleFn) {
-    var limit = iqout.length;
-    return function siggen() {
-      var phase = 0;
-      var radiansPerSample = radiansPerSampleFn();
-      for (var i = 0; i < limit; i += 2) {
-        var c = cos(phase);
-        iqout[i]   = cos(phase);
-        iqout[i+1] = sin(phase);
-        phase += radiansPerSample;
-      }
-    };
-  }
-  function Interpolator(iqin, iqout) {
-    var interpolation = Math.floor(iqout.length / iqin.length);
-    var limit = iqout.length;
-    return function interpolator() {
-      for (var j = 0; j < limit; j += 2) {
-        var position = j / (interpolation*2);
-        var index = Math.floor(position);
-        var fraction = position - index;
-        var complement = 1 - fraction;
-        var i = index * 2;
-        iqout[j]   = iqin[i] * complement + iqin[i+2] * fraction;
-        iqout[j+1] = iqin[i + 1] * complement + iqin[i+3] * fraction;
-      }
-    };
-  }
-  
-  function Graph(blocks) {
-    var limit = blocks.length;
-    return function graph() {
-      for (var i = 0; i < limit; i++) {
-        blocks[i]();
-      }
-    };
-  }
-  
   var filterOuterCoeff = 1/3;
   var filterInnerCoeff = 2/3;
   
@@ -223,18 +90,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var product = new Float32Array(interpolation * sampleCount * 2);
   var audioh = new Float32Array(sampleCount * 2);
   var audiol = new Float32Array(sampleCount * 2);
-  var g = Graph([
-    AMModulator(audioarray, modulatingam),
-    FMModulator(audioarray, modulatingfm, 0.75),
-    Interpolator(modulatingam, hfambuf),
-    Interpolator(modulatingfm, hffmbuf),
-    Rotator(hfambuf, amout, chfreq),
-    Rotator(hffmbuf, fmout, chfreq),
-    Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
-    Multiply(fmout, demodrot, product),
-    ToComplex(audioarray, dsbbuf),
-    FIRFilter(dsbbuf, audiol, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass),
-    FIRFilter(dsbbuf, audioh, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass),
+  var g = DSP.Graph([
+    DSP.blocks.AMModulator(audioarray, modulatingam),
+    DSP.blocks.FMModulator(audioarray, modulatingfm, 0.75),
+    DSP.blocks.LinearInterpolator(modulatingam, hfambuf),
+    DSP.blocks.LinearInterpolator(modulatingfm, hffmbuf),
+    DSP.blocks.Rotator(hfambuf, amout, chfreq),
+    DSP.blocks.Rotator(hffmbuf, fmout, chfreq),
+    DSP.blocks.Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
+    DSP.blocks.Multiply(fmout, demodrot, product),
+    DSP.blocks.ToComplex(audioarray, dsbbuf),
+    DSP.blocks.FIRFilter(dsbbuf, audiol, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass),
+    DSP.blocks.FIRFilter(dsbbuf, audioh, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass),
   ]);
   
   var twosig1 = new Float32Array(sampleCount * 2);
@@ -242,12 +109,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var twosig = new Float32Array(sampleCount * 2);
   var twosigl = new Float32Array(sampleCount * 2);
   var twosigh = new Float32Array(sampleCount * 2);
-  Graph([
-    Siggen(twosig1, function() { return 0.3; }),
-    Siggen(twosig2, function() { return 10; }),
-    Add(twosig1, twosig2, twosig),
-    FIRFilter(twosig, twosigl, 2, -0, [filterOuterCoeff, filterInnerCoeff, filterOuterCoeff]),  // 2 for complex
-    FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
+  DSP.Graph([
+    DSP.blocks.Siggen(twosig1, function() { return 0.3; }),
+    DSP.blocks.Siggen(twosig2, function() { return 10; }),
+    DSP.blocks.Add(twosig1, twosig2, twosig),
+    DSP.blocks.FIRFilter(twosig, twosigl, 2, -0, [filterOuterCoeff, filterInnerCoeff, filterOuterCoeff]),  // 2 for complex
+    DSP.blocks.FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
   ])();
   
   var mbdirector, demodStep = 6;
