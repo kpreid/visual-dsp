@@ -122,6 +122,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   function goMathbox() {
     var element = document.getElementById('mb');
     var mathbox = mathBox(element, {
+      stats: false,  // (disable) FPS meter in upper left corner
       cameraControls: true,
       controlClass: ThreeBox.OrbitControls,
       camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 10000),
