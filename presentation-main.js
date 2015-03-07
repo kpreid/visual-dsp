@@ -133,42 +133,38 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   
   var interpolation = 5;
   var chfreq = 0.30;
-  var modulatingam = new Float32Array(sampleCount * 2);
-  var modulatingfm = new Float32Array(sampleCount * 2);
-  var dsbbuf = new Float32Array(sampleCount * 2);
-  var hfambuf = new Float32Array(interpolation * sampleCount * 2);
-  var hffmbuf = new Float32Array(interpolation * sampleCount * 2);
-  var amout = new Float32Array(interpolation * sampleCount * 2);
-  var fmout = new Float32Array(interpolation * sampleCount * 2);
-  var demodrot = new Float32Array(interpolation * sampleCount * 2);
-  var product = new Float32Array(interpolation * sampleCount * 2);
-  var audioh = new Float32Array(sampleCount * 2);
-  var audiol = new Float32Array(sampleCount * 2);
+  var audioin = DSP.blocks.ArraySource(audioarray);
+  var modulatingam = DSP.blocks.AMModulator(audioin);
+  var modulatingfm = DSP.blocks.FMModulator(audioin, 0.75);
+  var dsbbuf = DSP.blocks.ToComplex(audioin);
+  var hfambuf = DSP.blocks.LinearInterpolator(modulatingam, interpolation);
+  var hffmbuf = DSP.blocks.LinearInterpolator(modulatingfm, interpolation);
+  var amout = DSP.blocks.Rotator(hfambuf, chfreq);
+  var fmout = DSP.blocks.Rotator(hffmbuf, chfreq);
+  var demodrot = DSP.blocks.Siggen(interpolation * sampleCount, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; });
+  var product = DSP.blocks.Multiply(fmout, demodrot);
+  var audioh = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass);
+  var audiol = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass);
   var g = DSP.Graph([
-    DSP.blocks.AMModulator(audioarray, modulatingam),
-    DSP.blocks.FMModulator(audioarray, modulatingfm, 0.75),
-    DSP.blocks.LinearInterpolator(modulatingam, hfambuf),
-    DSP.blocks.LinearInterpolator(modulatingfm, hffmbuf),
-    DSP.blocks.Rotator(hfambuf, amout, chfreq),
-    DSP.blocks.Rotator(hffmbuf, fmout, chfreq),
-    DSP.blocks.Siggen(demodrot, function() { return (mbdirector && mbdirector.step == demodStep ? Math.min(mbdirector.clock(demodStep) * 0.08, 1) : 0) * -chfreq; }),
-    DSP.blocks.Multiply(fmout, demodrot, product),
-    DSP.blocks.ToComplex(audioarray, dsbbuf),
-    DSP.blocks.FIRFilter(dsbbuf, audiol, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass),
-    DSP.blocks.FIRFilter(dsbbuf, audioh, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass),
+    modulatingam,
+    modulatingfm,
+    dsbbuf,
+    amout,
+    fmout,
+    product,
+    audioh,
+    audiol,
   ]);
   
-  var twosig1 = new Float32Array(sampleCount * 2);
-  var twosig2 = new Float32Array(sampleCount * 2);
-  var twosig = new Float32Array(sampleCount * 2);
-  var twosigl = new Float32Array(sampleCount * 2);
-  var twosigh = new Float32Array(sampleCount * 2);
+  var twosig1 = DSP.blocks.Siggen(sampleCount, function() { return 0.3; });
+  var twosig2 = DSP.blocks.Siggen(sampleCount, function() { return 10; });
+  var twosig = DSP.blocks.Add(twosig1, twosig2);
+  var twosigl = DSP.blocks.FIRFilter(twosig, 2, -1, [filterOuterCoeff, filterInnerCoeff, filterOuterCoeff]);  // 2 for complex
+  var twosigh = DSP.blocks.FIRFilter(twosig, 2, -1, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]);  // 2 for complex
   DSP.Graph([
-    DSP.blocks.Siggen(twosig1, function() { return 0.3; }),
-    DSP.blocks.Siggen(twosig2, function() { return 10; }),
-    DSP.blocks.Add(twosig1, twosig2, twosig),
-    DSP.blocks.FIRFilter(twosig, twosigl, 2, -0, [filterOuterCoeff, filterInnerCoeff, filterOuterCoeff]),  // 2 for complex
-    DSP.blocks.FIRFilter(twosig, twosigh, 2, -0, [-filterOuterCoeff, filterInnerCoeff, -filterOuterCoeff]),  // 2 for complex
+    twosig,
+    twosigl,
+    twosigh,
   ])();
   
   var mbdirector, demodStep = 6;
@@ -234,7 +230,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     });
     
     // wave
-    function docurve(id, color, array1, array2) {
+    function docurve(id, color, block1, block2) {
+      var array1 = block1.output;
+      var array2 = block2 ? block2.output : undefined;
       var outbuf = [0, 0, 0];
       return {
         id: id,
@@ -259,7 +257,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ksiginterp: 0,
       }
     }
-    function dountwist(id, radiansPerSample, array) {
+    function dountwist(id, radiansPerSample, block) {
+      var array = block.output;
       var outbuf = [0, 0, 0];
       return {
         id: id,
@@ -283,7 +282,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         kfreq: radiansPerSample,
       }
     }
-    function dountwistsum(id, radiansPerSample, array) {
+    function dountwistsum(id, radiansPerSample, block) {
+      var array = block.output;
       var zero = [0, 0, 0];
       var outbuf = [0, 0, 0];
       return {
@@ -637,7 +637,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       (function () {
         return [
           'The discrete Fourier transform',
-          'Then we multiply the signals by sinusoids with equally spaced frequencies. The copy remaining at the center has frequency zero, so it is unchanged. As we saw earlier, the effect of this is that a signal with the equal and opposite frequency will be “untwisted”, becoming a signal with constant phase — that is, it does not rotate around the axis.',
+          'Then we multiply the signals by complex sinusoids with equally spaced frequencies. The copy remaining at the center has frequency zero, so it is unchanged. As we saw earlier, the effect of this is that a signal with the equal and opposite frequency will be “untwisted”, becoming a signal with constant phase — that is, it does not rotate around the axis.',
         ].concat(forfourier(function (i, id) {
           return ['animate', '#' + id, {
             kfreq: i * freqscale
