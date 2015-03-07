@@ -47,6 +47,16 @@ position: absolute; left: 0; right: 0; bottom: 0; text-align: center; margin: au
 max-width: 50em;
 "></p>
 
+<div id="controls" style="
+position: absolute; left: 0; top: 0; padding: 0.5em; display: table;
+">
+  <select id="source-select" style="margin-right: 2em;">
+    <option value="user" selected>Microphone Input</option>
+    <option value="sig">Signal generator</option>
+  </select>
+  Gain <input type="range" id="gain" min="-10" max="20" value="0" step="any">
+</div>
+
 <script src="deps/MathBox-bundle.min.js"></script>
 <script src="dsp.js"></script>
 <script src="presentation-main.js"></script>

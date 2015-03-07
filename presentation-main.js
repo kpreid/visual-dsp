@@ -54,6 +54,52 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var fftarray = new Float32Array(binCount);
   var audioarray = new Float32Array(sampleCount);
   
+  var userGainNode = ctx.createGain();
+  var userGainEl = document.getElementById('gain');
+  function updateGain() {
+    userGainNode.gain.value = Math.pow(10, userGainEl.valueAsNumber / 10);
+  }
+  updateGain();
+  userGainEl.addEventListener('change', updateGain, false);
+  userGainEl.addEventListener('input', updateGain, false);
+  
+  var sources = Object.create(null);
+  var sourceSelectEl = document.getElementById('source-select');
+  sources['sig'] = (function() {
+    var osc1 = ctx.createOscillator();
+    osc1.frequency.value = sampleRate / 30;
+    osc1.start();
+    var gain1 = ctx.createGain();
+    gain1.gain.value = 0.5;
+    var osc2 = ctx.createOscillator();
+    osc2.frequency.value = osc1.frequency.value * 5;
+    osc2.start();
+    var gain2 = ctx.createGain();
+    gain2.gain.value = 0.5;
+    osc1.connect(gain1);
+    osc2.connect(gain2);
+    gain2.connect(gain1);
+    return gain1;
+  }());
+  var currentSource = null;
+  function wireSource() {
+    if (currentSource !== null) {
+      currentSource.disconnect(fftnode);
+    }
+    currentSource = sources[sourceSelectEl.value] || null;
+    if (currentSource === null && sourceSelectEl.value == 'user') {
+      currentSource = sources['sig'];
+    }
+    console.log('switching to', sourceSelectEl.value, currentSource);
+    if (currentSource !== null) {
+      currentSource.connect(userGainNode);
+    }
+  }
+  wireSource();
+  sourceSelectEl.addEventListener('change', wireSource, false);
+  
+  userGainNode.connect(fftnode);
+  
   var getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
   if (!getUserMedia) {
     reportFailure('This browser does not support getUserMedia. No signal will be shown.');
@@ -61,13 +107,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   } else {
     getUserMedia.call(navigator, {audio: true}, function getUserMediaSuccess(stream) {
       var source = ctx.createMediaStreamSource(stream);
-      source.connect(fftnode);
+      sources['user'] = source;
+      wireSource();
       
       // https://bugzilla.mozilla.org/show_bug.cgi?id=934512
       // http://stackoverflow.com/q/22860468/99692
       // Firefox destroys the media stream source even though it is in use by the audio graph. As a workaround, make a powerless global reference to it.
+      // TODO: moot now
       window[Math.random()] = function() { console.log(source); }
-    }, reportFailure);
+    }, function (error) {
+      console.error('error response from getUserMedia:', error);
+      var option = sourceSelectEl.querySelector('option[value="user"]');
+      option.textContent += ' (unavailable)';
+      option.disabled = true;
+      if (sourceSelectEl.value === 'user') sourceSelectEl.value = 'sig';
+    });
   }
   
   var filterOuterCoeff = 1/3;
