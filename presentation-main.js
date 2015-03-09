@@ -197,7 +197,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     
     function axisi(v) { return v == 2 ? 'I' : ''; }
     function axisq(v) { return v == 2 ? 'Q' : ''; }
-    mathbox.axis({
+    var iaxisdef = {
       id: 'iaxis',
       axis: 1,
       color: 0x777777,
@@ -207,8 +207,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       arrow: false,
       labels: false,
       formatter: axisi
-    });
-    mathbox.axis({
+    };
+    var qaxisdef = {
       id: 'qaxis',
       axis: 0,
       color: 0x777777,
@@ -218,7 +218,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       arrow: false,
       labels: false,
       formatter: axisq
-    });
+    };
+    mathbox.axis(iaxisdef);
+    mathbox.axis(qaxisdef);
     mathbox.axis({
       id: 'taxis',
       axis: 2,
@@ -686,8 +688,24 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }()),
       [
         'Real signals',
-        'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
+        'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal, which this is, is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
       ],
+      (function () {
+        return [
+          'Digital modulation',
+          '(TODO)',
+          ['add', 'axis', Object.create(iaxisdef, {labels:{value:true}})],
+          ['add', 'axis', Object.create(qaxisdef, {labels:{value:true}})],
+        ].concat(forfourier(function (i, id) {
+          return ['remove', '#' + id + 'sum'];
+        })).concat(forfourier(function (i, id) {
+          return ['remove', '#' + id];
+        })).concat(forfourier(function (i, id) {
+          return ['remove', '#' + id + 'axis'];
+        }));
+      }()),
+      
+      // TODO
       [
         'End',
         'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
