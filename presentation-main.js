@@ -147,7 +147,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var audioh = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass);
   var audiol = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass);
   
-  var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
+  //var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
+  var digdata = new Float32Array([1,0,1,1,0,0,1,1,1,0,1,1,0,0,1,0])
   var diginterp = 40;
   var digsamples = digdata.length * diginterp;
   var digchfreq = 0.30;
