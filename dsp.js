@@ -256,6 +256,22 @@ var VisualDSP_DSP = (function () {
   }
   blocks.RepeatInterpolator = RepeatInterpolator;
   
+  function Mapper(inputb, map) {
+    var input = outputArray(inputb);
+    var output = new Float32Array(input.length);
+    var limit = input.length;
+    return {
+      inputs: [inputb],
+      output: output,
+      run: function mapper() {
+        for (var i = 0; i < limit; i++) {
+          output[i] = map[input[i]];
+        }
+      }
+    };
+  }
+  blocks.Mapper = Mapper;
+  
   exports.blocks = Object.freeze(blocks);
   
   function Graph(blocks) {

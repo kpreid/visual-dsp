@@ -157,6 +157,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var digbaseband = DSP.blocks.ToComplex(digin);
   var dighold = DSP.blocks.RepeatInterpolator(digbaseband, diginterp);
   var digook = DSP.blocks.Rotator(dighold, digchfreq);
+  var digpn = DSP.blocks.Mapper(digin, [-1, 1]);
+  var digpnkey = DSP.blocks.Rotator(DSP.blocks.RepeatInterpolator(DSP.blocks.ToComplex(digpn), diginterp), digchfreq);
   
   var g = DSP.Graph([
     modulatingam,
@@ -169,7 +171,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     audiol,
     
     dighold,
-    digook
+    digook,
+    digpn,
+    digpnkey
   ]);
   
   var twosig1 = DSP.blocks.Siggen(sampleCount, function() { return 0.3; });
@@ -719,7 +723,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           }],
           ['add', 'axis', Object.create(iaxisdef, {labels:{value:true}})],
           ['add', 'axis', Object.create(qaxisdef, {labels:{value:true}})],
-          ['add', 'curve', docurve('dighold', 0x000000, dighold)],
+          ['add', 'curve', docurve('dighold', 0x000000, dighold), {
+            delay: 700,
+          }],
           //['set', '#dighold', {
           //  points: true,
           //  line: false,
@@ -733,9 +739,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         }));
       }()),
       [
-        'Digital modulation',
+        'On-off keying',
         '(TODO)',
         ['add', 'curve', docurve('digook', 0x0077FF, digook)],
+      ],
+      [
+        'Phase-shift keying',
+        '(TODO)  ... ambiguity ... differential encoding',
+        ['remove', '#digook'],
+        ['add', 'curve', docurve('digpnkey', 0x0077FF, digpnkey)],
       ],
       
       // TODO
