@@ -220,7 +220,7 @@ var VisualDSP_DSP = (function () {
     return {
       inputs: [iqinb],
       output: iqout,
-      run: function interpolator() {
+      run: function linearInterpolator() {
         for (var j = 0; j < limit; j += 2) {
           var position = j / (interpolation*2);
           var index = Math.floor(position);
@@ -234,6 +234,27 @@ var VisualDSP_DSP = (function () {
     };
   }
   blocks.LinearInterpolator = LinearInterpolator;
+  
+  function RepeatInterpolator(iqinb, interpolation) {
+    var iqin = outputArray(iqinb);
+    interpolation = Math.floor(interpolation);
+    var iqout = new Float32Array(iqin.length * interpolation);
+    var limit = iqin.length;
+    return {
+      inputs: [iqinb],
+      output: iqout,
+      run: function repeatInterpolator() {
+        for (var i = 0; i < limit; i += 2) {
+          var jlim = (i + 2) * interpolation;
+          for (var j = i * interpolation; j < jlim; j += 2) {
+            iqout[j] = iqin[i];
+            iqout[j + 1] = iqin[i + 1];
+          }
+        }
+      }
+    };
+  }
+  blocks.RepeatInterpolator = RepeatInterpolator;
   
   exports.blocks = Object.freeze(blocks);
   

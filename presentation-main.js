@@ -133,6 +133,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   
   var interpolation = 5;
   var chfreq = 0.30;
+  
   var audioin = DSP.blocks.ArraySource(audioarray);
   var modulatingam = DSP.blocks.AMModulator(audioin);
   var modulatingfm = DSP.blocks.FMModulator(audioin, 0.75);
@@ -145,6 +146,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var product = DSP.blocks.Multiply(fmout, demodrot);
   var audioh = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass);
   var audiol = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass);
+  
+  var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
+  var diginterp = 40;
+  var digsamples = digdata.length * diginterp;
+  var digchfreq = 0.30;
+  
+  var digin = DSP.blocks.ArraySource(digdata);
+  var digbaseband = DSP.blocks.ToComplex(digin);
+  var dighold = DSP.blocks.RepeatInterpolator(digbaseband, diginterp);
+  var digook = DSP.blocks.Rotator(dighold, digchfreq);
+  
   var g = DSP.Graph([
     modulatingam,
     modulatingfm,
@@ -154,6 +166,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     product,
     audioh,
     audiol,
+    
+    dighold,
+    digook
   ]);
   
   var twosig1 = DSP.blocks.Siggen(sampleCount, function() { return 0.3; });
@@ -694,8 +709,20 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         return [
           'Digital modulation',
           '(TODO)',
+          ['animate', 'camera', {
+            phi: Math.PI * 0.7,
+            theta: 0.05
+          }, {
+            delay: 0,
+            duration: 500
+          }],
           ['add', 'axis', Object.create(iaxisdef, {labels:{value:true}})],
           ['add', 'axis', Object.create(qaxisdef, {labels:{value:true}})],
+          ['add', 'curve', docurve('dighold', 0x000000, dighold)],
+          //['set', '#dighold', {
+          //  points: true,
+          //  line: false,
+          //}]
         ].concat(forfourier(function (i, id) {
           return ['remove', '#' + id + 'sum'];
         })).concat(forfourier(function (i, id) {
@@ -704,6 +731,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           return ['remove', '#' + id + 'axis'];
         }));
       }()),
+      [
+        'Digital modulation',
+        '(TODO)',
+        ['add', 'curve', docurve('digook', 0x0077FF, digook)],
+      ],
       
       // TODO
       [
