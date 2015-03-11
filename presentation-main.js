@@ -153,13 +153,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var digsamples = digdata.length * diginterp;
   var digchfreq = 0.30;
   
+  // firdes.root_raised_cosine(gain=40.0, sampling_freq=40, symbol_rate=1, alpha=0.25, ntaps=200)
+  var dig_rrc_taps = [0.06413525342941284, 0.06912656128406525, 0.07376259565353394, 0.07799314707517624, 0.08176935464143753, 0.08504420518875122, 0.08777286857366562, 0.08991317451000214, 0.09142597764730453, 0.09227557480335236, 0.09243007004261017, 0.09186173975467682, 0.09054736793041229, 0.08846860378980637, 0.0856122076511383, 0.08197031915187836, 0.07754074782133102, 0.07232708483934402, 0.06633895635604858, 0.059592101722955704, 0.05210845172405243, 0.043916214257478714, 0.03504985198378563, 0.025550054386258125, 0.015463657677173615, 0.004843507893383503, -0.006251695565879345, -0.01775762066245079, -0.029604556038975716, -0.04171771556138992, -0.054017573595047, -0.06642024964094162, -0.07883792370557785, -0.09117928892374039, -0.10335005819797516, -0.11525343358516693, -0.12679073214530945, -0.13786186277866364, -0.1483660340309143, -0.15820223093032837, -0.16726994514465332, -0.1754697859287262, -0.18270409107208252, -0.18887759745121002, -0.19389811158180237, -0.19767707586288452, -0.20013023912906647, -0.20117828249931335, -0.20074740052223206, -0.19876980781555176, -0.19518440961837769, -0.18993720412254333, -0.18298178911209106, -0.1742798388004303, -0.16380146145820618, -0.1515255719423294, -0.13744015991687775, -0.12154260277748108, -0.10383985191583633, -0.08434852957725525, -0.0630950927734375, -0.0401158332824707, -0.015456845983862877, 0.010826030746102333, 0.03866736963391304, 0.06799235194921494, 0.09871701151132584, 0.13074859976768494, 0.16398584842681885, 0.19831956923007965, 0.2336329221725464, 0.26980212330818176, 0.30669692158699036, 0.34418120980262756, 0.3821137547492981, 0.4203488230705261, 0.45873698592185974, 0.4971257448196411, 0.5353603959083557, 0.573284924030304, 0.6107425689697266, 0.6475769877433777, 0.6836327314376831, 0.7187562584877014, 0.7527968287467957, 0.7856071591377258, 0.8170443177223206, 0.8469705581665039, 0.8752537369728088, 0.9017686247825623, 0.926396906375885, 0.949028730392456, 0.9695621728897095, 0.987904965877533, 1.0039739608764648, 1.017696499824524, 1.02901029586792, 1.037863850593567, 1.0442167520523071, 1.0480402708053589, 1.049316644668579, 1.0480402708053589, 1.0442167520523071, 1.037863850593567, 1.02901029586792, 1.017696499824524, 1.0039739608764648, 0.987904965877533, 0.9695621728897095, 0.949028730392456, 0.926396906375885, 0.9017686247825623, 0.8752537369728088, 0.8469705581665039, 0.8170443177223206, 0.7856071591377258, 0.7527968287467957, 0.7187562584877014, 0.6836327314376831, 0.6475769877433777, 0.6107425689697266, 0.573284924030304, 0.5353603959083557, 0.4971257448196411, 0.45873698592185974, 0.4203488230705261, 0.3821137547492981, 0.34418120980262756, 0.30669692158699036, 0.26980212330818176, 0.2336329221725464, 0.19831956923007965, 0.16398584842681885, 0.13074859976768494, 0.09871701151132584, 0.06799235194921494, 0.03866736963391304, 0.010826030746102333, -0.015456845983862877, -0.0401158332824707, -0.0630950927734375, -0.08434852957725525, -0.10383985191583633, -0.12154260277748108, -0.13744015991687775, -0.1515255719423294, -0.16380146145820618, -0.1742798388004303, -0.18298178911209106, -0.18993720412254333, -0.19518440961837769, -0.19876980781555176, -0.20074740052223206, -0.20117828249931335, -0.20013023912906647, -0.19767707586288452, -0.19389811158180237, -0.18887759745121002, -0.18270409107208252, -0.1754697859287262, -0.16726994514465332, -0.15820223093032837, -0.1483660340309143, -0.13786186277866364, -0.12679073214530945, -0.11525343358516693, -0.10335005819797516, -0.09117928892374039, -0.07883792370557785, -0.06642024964094162, -0.054017573595047, -0.04171771556138992, -0.029604556038975716, -0.01775762066245079, -0.006251695565879345, 0.004843507893383503, 0.015463657677173615, 0.025550054386258125, 0.03504985198378563, 0.043916214257478714, 0.05210845172405243, 0.059592101722955704, 0.06633895635604858, 0.07232708483934402, 0.07754074782133102, 0.08197031915187836, 0.0856122076511383, 0.08846860378980637, 0.09054736793041229, 0.09186173975467682, 0.09243007004261017, 0.09227557480335236, 0.09142597764730453, 0.08991317451000214, 0.08777286857366562, 0.08504420518875122, 0.08176935464143753, 0.07799314707517624, 0.07376259565353394, 0.06912656128406525, 0.06413525342941284];
+  function pshap(input) {
+    return DSP.blocks.FIRFilter(DSP.blocks.ImpulseInterpolator(input, diginterp), 2, -Math.floor(dig_rrc_taps.length / 2) - 10 /* fudge factor */, dig_rrc_taps);
+  }
+  
   var digin = DSP.blocks.ArraySource(digdata);
   var digbaseband = DSP.blocks.ToComplex(digin);
   var dighold = DSP.blocks.RepeatInterpolator(digbaseband, diginterp);
+  var digshap = pshap(digbaseband);
+  var digshapook = DSP.blocks.Rotator(digshap, digchfreq);
   var digook = DSP.blocks.Rotator(dighold, digchfreq);
   var digpn = DSP.blocks.Mapper(digin, [-1, 1]);
-  var digpnhold = DSP.blocks.RepeatInterpolator(DSP.blocks.ToComplex(digpn), diginterp);
-  var digpnkey = DSP.blocks.Rotator(digpnhold, digchfreq);
+  var digpnbase = DSP.blocks.ToComplex(digpn);
+  var digpnhold = DSP.blocks.RepeatInterpolator(digpnbase, diginterp);
+  var digpnshap = pshap(digpnbase);
+  var digpnkey = DSP.blocks.Rotator(digpnshap, digchfreq);
   
   var g = DSP.Graph([
     modulatingam,
@@ -170,12 +180,18 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     product,
     audioh,
     audiol,
-    
+  ]);
+  
+  var diggraph = DSP.Graph([
     dighold,
     digook,
+    digshap,
+    digshapook,
     digpnhold,
+    digpnshap,
     digpnkey
   ]);
+  diggraph();
   
   var twosig1 = DSP.blocks.Siggen(sampleCount, function() { return 0.3; });
   var twosig2 = DSP.blocks.Siggen(sampleCount, function() { return 10; });
@@ -751,30 +767,44 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }()),
       [
         'On-off keying',
-        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”). A low-pass filter can be used before modulation to reduce this, and there are some interesting details I won\'t go into about optimal transmit and receive filtering for digital modulation.',
+        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”).',
         // TODO write non-hams version of this slide
-        // TODO discuss pulse shaping later
         ['add', 'curve', docurve('digook', 0x0077FF, digook)],
       ],
-      // TODO maybe introduce general ASK here
+      [
+        'On-off keying with pulse shaping',
+        'In order to fix the transitions, we use a pulse shaping filter on the modulating signal. This looks like a mess, and in fact if someone\'s CW transmitter had a keying waveform like this it would be horrible because it lacks crisp transitions, but it does minimize the bandwidth used, and it\'s actually easy for demodulators to handle, as we will see later. Incidentally, the little notches you can see in the signal are imperfections in the filter. We use a truncated filter, one with fewer taps, to save computation at the price of not being quite ideal; the ideal filter would be infinitely long and therefore imposible to implement.',
+        // TODO write non-hams version of this slide
+        ['remove', '#digook'],
+        ['set', '#dighold', {color: 0xAAAAAA}],
+        ['add', 'curve', docurve('digshap', 0x000000, digshap)],
+        ['add', 'curve', docurve('digshapook', 0x0077FF, digshapook)],
+      ],
+      [
+        'On-off keying with pulse shaping',
+        'Now let\'s look at another type of modulation.',
+      ],
       [
         'Phase-shift keying',
         'Here we\'ve taken the modulating signal and replaced the zeroes with minus ones. That is, we\'re multiplying the carrier wave by minus one. This has the effect of producing a _phase shift_ by 180 degrees, while leaving the amplitude the same. However, we\'ve introduced an ambiguity — when the receiver starts receiving the signal, it doesn\'t have any reference phase, and so a phase transition could be from zero to one or one to zero. This isn\'t a serious problem, because more synchronization information is needed to make sense of the bits anyway — a known sequence at the beginning of the transmission packet can resolve the ambiguity. Or you can use a differential encoding, where a phase transition stands for one and no transition stands for zero, or vice versa.',
-        ['remove', '#digook'],
         ['remove', '#dighold'],
-        ['add', 'curve', docurve('digpnhold', 0x000000, digpnhold)],
+        ['remove', '#digshap'],
+        ['remove', '#digshapook'],
+        ['add', 'curve', docurve('digpnhold', 0xAAAAAA, digpnhold)],
+        ['add', 'curve', docurve('digpnshap', 0x000000, digpnshap)],
         ['add', 'curve', docurve('digpnkey', 0x0077FF, digpnkey)],
       ],
       [
         'Digital demodulation',
-        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal. What we have in this case is a carrier wave occasional phase shifts; we need to recover the original bits.',
+        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal, if nothing else so this fairly messy picture gets cleaner. What we have in this case is a carrier wave occasional phase shifts; we need to recover the original bits.',
         ['remove', '#digpnhold'],
+        ['remove', '#digpnshap'],
         ['animate', 'camera', {
           phi: Math.PI * 0.8,
           theta: 0.05
         }, {
-          delay: 0,
-          duration: 500
+          delay: 500,
+          duration: 1000
         }]
       ],
       [
