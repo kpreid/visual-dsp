@@ -748,9 +748,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         return [
           'Digital modulation',
           'Up to this point, I\'ve been talking about digital signal processing — that is, signal processing as performed by a digital computer. Now, I\'m going to talk about digital _modulation_ — that is, signals which carry digital data. Here we see a digital signal as you might have it in an introduction to digital logic — two levels, representing binary digits one and zero, and sharp transitions between the two, this whole signal being 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0.',
-          // TODO to cover: symbols instead of high bit rate
-          // TODO to cover: symbol shaping/matched filters
-          // TODO to cover: clock synchronization
           ['animate', 'camera', {
             phi: PI,
             theta: almost_zero_theta
@@ -860,7 +857,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Digital demodulation',
-        'Now let\'s take the end-on view. Here, we stop being able to see the actual data, and we instead see just all the _possible_ positions in the signal. This is known as a constellation diagram, and it is a very useful representation of digital signals; we\'ll see why shortly.',
+        'Now let\'s take the end-on view. Here, we stop being able to see the actual data, and we instead see just all the _possible_ positions in the signal. This is known as a constellation diagram, and it is a very useful representation of digital signals.',
         ['animate', 'camera', {
           phi: Math.PI / 2,
           theta: 0.00
@@ -875,20 +872,34 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Quadrature phase-shift keying (QPSK)',
-        'Now there are four dots rather than two; the digital signal must have four possible values instead of two. Since there are more than two, each dot represents more than a single bit; we call these _symbols_. It takes two bits to identify one of four things, so there are two bits per symbol. Angles on this diagram are phase, so there is 90 degrees of phase separation between them. This case with four symbols is called quadrature phase-shift keying, or QPSK. In general, you can have PSK with any number of symbols, but as the number of symbols increases the decreasing separation means that a better signal-to-noise ratio is required to receive the symbols without error.',
+        'Now there are four dots rather than two; the digital signal must have four possible values instead of two. Since there are more than two, each dot represents more than a single bit; we call these _symbols_. It takes two bits to identify one of four things, so there are two bits per symbol. Angles on this diagram are phase, so there is 90 degrees of phase separation between them. This case with four symbols is called quadrature phase-shift keying, or QPSK.',
         ['remove', '#digpnbase'],
         ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
       ],
-      // TODO
+      [
+        'Quadrature phase-shift keying (QPSK)',
+        'In general, you can have PSK with any number of symbols, but as the number of symbols increases the decreasing separation means that a better signal-to-noise ratio is required to receive the symbols without error. If there were noise in this signal, then you would see it on the diagram as these single points becoming fuzzy clouds of samples; a decoding error occurs when the noise pushes one of the samples into being closer to a different symbol than the correct symbol.',
+        ['remove', '#digpnbase'],
+        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
+      ],
+      // TODO: QAM
+      // TODO: FSK
+      [
+        'Digital modulations: wrap',
+        'There\'s lots more that can be said about digital modulations, but that\'s all I have for the moment. One thing I notably haven\'t covered is frequency-shift keying (FSK) modulation, which is very common in amateur applications by way of RTTY and APRS. I\'ll write more on the subject later, but for transmitting, FSK is basically FM with discrete levels rather than an audio signal.',
+        // TODO: non-ham version of this slide
+        ['remove', '#digpnbase'],
+        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
+      ],
       [
         'End',
-        'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
-        ['animate', 'camera', {
-          theta: Math.PI * 0.1
-        }, {
-          delay: 0,
-          duration: 2000
-        }],
+        'This presentation copyright © 2014, 2015 Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
+        //['animate', 'camera', {
+        //  theta: Math.PI * 0.1
+        //}, {
+        //  delay: 0,
+        //  duration: 2000
+        //}],
       ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
