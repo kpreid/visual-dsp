@@ -297,6 +297,32 @@ var VisualDSP_DSP = (function () {
   }
   blocks.Mapper = Mapper;
   
+  // TODO I forget what the proper name for this is
+  function SymbolModulator(inputb, gain, array) {
+    array = array.map(function (s) { return [s[0] * gain, s[1] * gain]; });
+    var nbits = Math.round(Math.log2(array.length));
+    var input = outputArray(inputb);
+    var limit = Math.round(input.length / nbits);
+    var output = new Float32Array(limit * 2);
+    return {
+      inputs: [inputb],
+      output: output,
+      run: function mapper() {
+        for (var i = 0; i < limit; i++) {
+          var code = 0;
+          for (var j = 0; j < nbits; j++) {
+            code = (code << 1) + input[i * nbits + j];
+          }
+          console.log(code);
+          var symbol = array[code];
+          output[i * 2] = symbol[0];
+          output[i * 2 + 1] = symbol[1];
+        }
+      }
+    };
+  }
+  blocks.SymbolModulator = SymbolModulator;
+  
   exports.blocks = Object.freeze(blocks);
   
   function Graph(blocks) {

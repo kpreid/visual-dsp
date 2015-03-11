@@ -147,8 +147,19 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var audioh = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass);
   var audiol = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass);
   
+  var g = DSP.Graph([
+    modulatingam,
+    modulatingfm,
+    dsbbuf,
+    amout,
+    fmout,
+    product,
+    audioh,
+    audiol,
+  ]);
+  
   //var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
-  var digdata = new Float32Array([1,0,1,1,0,0,1,1,1,0,1,1,0,0,1,0])
+  var digdata = new Float32Array([1,0,1,1,0,0,1,1,0,1,1,1,0,0,1,0]);
   var diginterp = 40;
   var digsamples = digdata.length * diginterp;
   var digchfreq = 0.30;
@@ -170,17 +181,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var digpnhold = DSP.blocks.RepeatInterpolator(digpnbase, diginterp);
   var digpnshap = pshap(digpnbase);
   var digpnkey = DSP.blocks.Rotator(digpnshap, digchfreq);
-  
-  var g = DSP.Graph([
-    modulatingam,
-    modulatingfm,
-    dsbbuf,
-    amout,
-    fmout,
-    product,
-    audioh,
-    audiol,
-  ]);
+  var digqpskbase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), [[-1, -1], [-1, 1], [1, 1], [1, -1]]);
   
   var diggraph = DSP.Graph([
     dighold,
@@ -189,7 +190,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     digshapook,
     digpnhold,
     digpnshap,
-    digpnkey
+    digpnkey,
+    digpnbase,
+    digqpskbase
   ]);
   diggraph();
   
@@ -295,6 +298,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         lineWidth: 2,
         ksiginterp: 0,
       }
+    }
+    function dopoints(id, color, block) {
+      var record = docurve(id, color, block);
+      record.points = true;
+      record.line = false;
+      record.pointSize = 8;
+      return record;
     }
     function dountwist(id, color, radiansPerSample, block) {
       var array = block.output;
@@ -812,7 +822,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         'First, as previously discussed, we perform a frequency shift to return the signal to baseband. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
         ['animate', '#digpnkey', {
           kfreq: -digchfreq * 1.02,
-          kphase: PI + 0.4  // arbitrary
+          kphase: 0.4  // arbitrary
         }, {
           delay: 0,
           duration: 7000,
@@ -828,11 +838,46 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           duration: 1000,
         }],
         ['animate', '#digpnkey', {
-          kphase: PI,
+          kphase: 0,
         }, {
           delay: 1000,
           duration: 400,
         }]
+      ],
+      [
+        'Digital demodulation',
+        'Remember, this is a digital signal, so we already have it sliced up in a sense, but we have far too many samples, and also the sample intervals are not synchronized with the digital clock which generated the bits in the first place at the transmitter; this synchronization is necessary to ensure we don\'t take samples halfway between two bits and read nonsense. Again, there are algorithms for this purpose, and I\'m not going to go into the details of that.',
+        ['set', '#digpnkey', {
+          points: true,
+          line: false,
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'So, here we have the original bits — still represented as plus and minus one. I\'ve also conveniently assumed we\'ve recovered the exact original phase so they\'re lined up on the I axis.',
+        ['remove', '#digpnkey'],
+        ['add', 'curve', dopoints('digpnbase', 0x000000, digpnbase)],
+      ],
+      [
+        'Digital demodulation',
+        'Now let\'s take the end-on view. Here, we stop being able to see the actual data, and we instead see just all the _possible_ positions in the signal. This is known as a constellation diagram, and it is a very useful representation of digital signals; we\'ll see why shortly.',
+        ['animate', 'camera', {
+          phi: Math.PI / 2,
+          theta: 0.00
+        }, {
+          delay: 1000,
+          duration: 2000
+        }],
+      ],
+      [
+        'Symbols',
+        'Notice that there\'s lots of empty space in this diagram — we\'re only using one dimension, but there are two available. Let\'s do that.',
+      ],
+      [
+        'Quadrature phase-shift keying (QPSK)',
+        'Now there are four dots rather than two; the digital signal must have four possible values instead of two. Since there are more than two, each dot represents more than a single bit; we call these _symbols_. It takes two bits to identify one of four things, so there are two bits per symbol. Angles on this diagram are phase, so there is 90 degrees of phase separation between them. This case with four symbols is called quadrature phase-shift keying, or QPSK. In general, you can have PSK with any number of symbols, but as the number of symbols increases the decreasing separation means that a better signal-to-noise ratio is required to receive the symbols without error.',
+        ['remove', '#digpnbase'],
+        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
       ],
       // TODO
       [
