@@ -158,7 +158,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var dighold = DSP.blocks.RepeatInterpolator(digbaseband, diginterp);
   var digook = DSP.blocks.Rotator(dighold, digchfreq);
   var digpn = DSP.blocks.Mapper(digin, [-1, 1]);
-  var digpnkey = DSP.blocks.Rotator(DSP.blocks.RepeatInterpolator(DSP.blocks.ToComplex(digpn), diginterp), digchfreq);
+  var digpnhold = DSP.blocks.RepeatInterpolator(DSP.blocks.ToComplex(digpn), diginterp);
+  var digpnkey = DSP.blocks.Rotator(digpnhold, digchfreq);
   
   var g = DSP.Graph([
     modulatingam,
@@ -172,7 +173,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     
     dighold,
     digook,
-    digpn,
+    digpnhold,
     digpnkey
   ]);
   
@@ -291,7 +292,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         expression: function (x, i) {
           var vi = array[i * 2];
           var vq = array[i * 2 + 1];
-          var phase = i * this.get('kfreq');
+          var phase = this.get('kphase') + i * this.get('kfreq');
           var s = sin(phase);
           var c = cos(phase);
           var scale = 1;
@@ -302,6 +303,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
+        kphase: 0,
       }
     }
     function dountwistsum(id, radiansPerSample, block) {
@@ -318,6 +320,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           if (i == 0) {
             return zero;
           }
+          var zerophase = this.get('kphase');
           var freq = this.get('kfreq');
           var sumi = 0;
           var sumq = 0;
@@ -325,7 +328,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           for (var i = 0; i < limit; i++) {
             var vi = array[i * 2];
             var vq = array[i * 2 + 1];
-            var phase = i * freq;
+            var phase = zerophase + i * freq;
             var s = sin(phase);
             var c = cos(phase);
             sumq += (s * vi + c * vq);
@@ -339,6 +342,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
+        kphase: 0,
       }
     }
 
@@ -710,16 +714,23 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         'Real signals',
         'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal, which this is, is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
       ],
+      [
+        'Real signals',
+        'That\'s all I have to say about the Fourier transform.'
+      ],
       (function () {
         return [
           'Digital modulation',
-          '(TODO)',
+          'Up to this point, I\'ve been talking about digital signal processing — that is, signal processing as performed by a digital computer. Now, I\'m going to talk about digital _modulation_ — that is, signals which carry digital data. Here we see a digital signal as you might have it in an introduction to digital logic — two levels, representing binary digits one and zero, and sharp transitions between the two, this whole signal being 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 0.',
+          // TODO to cover: symbols instead of high bit rate
+          // TODO to cover: symbol shaping/matched filters
+          // TODO to cover: clock synchronization
           ['animate', 'camera', {
-            phi: Math.PI * 0.7,
-            theta: 0.05
+            phi: PI,
+            theta: almost_zero_theta
           }, {
             delay: 0,
-            duration: 500
+            duration: 1000
           }],
           ['add', 'axis', Object.create(iaxisdef, {labels:{value:true}})],
           ['add', 'axis', Object.create(qaxisdef, {labels:{value:true}})],
@@ -740,16 +751,61 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }()),
       [
         'On-off keying',
-        '(TODO)',
+        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”). A low-pass filter can be used before modulation to reduce this, and there are some interesting details I won\'t go into about optimal transmit and receive filtering for digital modulation.',
+        // TODO write non-hams version of this slide
+        // TODO discuss pulse shaping later
         ['add', 'curve', docurve('digook', 0x0077FF, digook)],
       ],
+      // TODO maybe introduce general ASK here
       [
         'Phase-shift keying',
-        '(TODO)  ... ambiguity ... differential encoding',
+        'Here we\'ve taken the modulating signal and replaced the zeroes with minus ones. That is, we\'re multiplying the carrier wave by minus one. This has the effect of producing a _phase shift_ by 180 degrees, while leaving the amplitude the same. However, we\'ve introduced an ambiguity — when the receiver starts receiving the signal, it doesn\'t have any reference phase, and so a phase transition could be from zero to one or one to zero. This isn\'t a serious problem, because more synchronization information is needed to make sense of the bits anyway — a known sequence at the beginning of the transmission packet can resolve the ambiguity. Or you can use a differential encoding, where a phase transition stands for one and no transition stands for zero, or vice versa.',
         ['remove', '#digook'],
+        ['remove', '#dighold'],
+        ['add', 'curve', docurve('digpnhold', 0x000000, digpnhold)],
         ['add', 'curve', docurve('digpnkey', 0x0077FF, digpnkey)],
       ],
-      
+      [
+        'Digital demodulation',
+        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal. What we have in this case is a carrier wave occasional phase shifts; we need to recover the original bits.',
+        ['remove', '#digpnhold'],
+        ['animate', 'camera', {
+          phi: Math.PI * 0.8,
+          theta: 0.05
+        }, {
+          delay: 0,
+          duration: 500
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'First, as previously discussed, we perform a frequency shift to return the signal to baseband. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
+        ['remove', '#digpnkey'],
+        ['add', 'curve', dountwist('digpnkey', 0, digpnkey)],
+        ['animate', '#digpnkey', {
+          kfreq: -digchfreq * 1.02,
+          kphase: PI + 0.4  // arbitrary
+        }, {
+          delay: 0,
+          duration: 7000,
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'There are a number of algorithms which can be used for this purpose depending on the particular modulation in use. In any case we now have a true baseband signal with no twist to it. The next problem is that we need to recover the bits — to slice this signal up along the time axis.',
+        ['animate', '#digpnkey', {
+          kfreq: -digchfreq,
+        }, {
+          delay: 0,
+          duration: 1000,
+        }],
+        ['animate', '#digpnkey', {
+          kphase: PI,
+        }, {
+          delay: 1000,
+          duration: 400,
+        }]
+      ],
       // TODO
       [
         'End',
