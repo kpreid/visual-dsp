@@ -820,7 +820,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Digital demodulation',
-        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal, if nothing else so this fairly messy picture gets cleaner. What we have in this case is a carrier wave occasional phase shifts; we need to recover the original bits.',
+        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal, if nothing else so this fairly messy picture gets cleaner. What we have in this case is a carrier wave with occasional phase shifts; we need to recover the original bits.',
         ['remove', '#digpnhold'],
         ['remove', '#digpnshap'],
         ['animate', 'camera', {
@@ -833,7 +833,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Digital demodulation',
-        'First, as previously discussed, we perform a frequency shift to return the signal to baseband. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
+        'First, as we did with the previous analog signals, we perform a frequency shift to return the signal to baseband, using the frequency the receiver is set to receive. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
         ['animate', '#digpnkey', {
           kfreq: -digchfreq * 1.02,
           kphase: 0.4  // arbitrary
@@ -860,7 +860,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Digital demodulation',
-        'Remember, this is a digital signal, so we already have it sliced up in a sense, but we have far too many samples, and also the sample intervals are not synchronized with the digital clock which generated the bits in the first place at the transmitter; this synchronization is necessary to ensure we don\'t take samples halfway between two bits and read nonsense. Again, there are algorithms for this purpose, and I\'m not going to go into the details of that.',
+        'Remember, this is a digital signal, so we already have it sliced up in a sense, but we have far too many samples; we want instead to have exactly one sample per bit. To do this, we need to take those samples in a way which is synchronized with the digital clock which generated the bits in the first place at the transmitter; this is necessary to ensure we don\'t take samples halfway between two bits and read nonsense. Again, there are various algorithms for this synchronization, and I\'m going to skip the details of that.',
         ['set', '#digpnkey', {
           points: true,
           line: false,
