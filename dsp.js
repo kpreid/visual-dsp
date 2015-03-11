@@ -313,7 +313,6 @@ var VisualDSP_DSP = (function () {
           for (var j = 0; j < nbits; j++) {
             code = (code << 1) + input[i * nbits + j];
           }
-          console.log(code);
           var symbol = array[code];
           output[i * 2] = symbol[0];
           output[i * 2 + 1] = symbol[1];
