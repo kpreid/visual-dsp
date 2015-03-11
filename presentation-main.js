@@ -182,7 +182,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var digpnhold = DSP.blocks.RepeatInterpolator(digpnbase, diginterp);
   var digpnshap = pshap(digpnbase);
   var digpnkey = DSP.blocks.Rotator(digpnshap, digchfreq);
-  var digqpskbase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), [[-1, -1], [-1, 1], [1, 1], [1, -1]]);
+  var qpskconst = [[-1, -1], [-1, 1], [1, 1], [1, -1]];
+  var digqpskbase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), qpskconst);
   var qamconst = (function() {
     var out = [];
     for (var i = 0; i < 4; i++) {
@@ -386,6 +387,33 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         lineWidth: 2,
         kfreq: radiansPerSample,
         kphase: 0,
+      }
+    }
+    
+    function doconstellation(id, gain, constellation) {
+      var n = constellation.length;
+      var outbuf = [0, 0, 0];
+      return {
+        id: id,
+        color: 0xFF5555,
+        n: n,
+        live: false,
+        domain: [0, 1],  // unused
+        line: true,
+        arrow: true,
+        expression: function (i, end) {
+          if (end) {
+            outbuf[2] = timeRangeScale;
+          } else {
+            outbuf[2] = -timeRangeScale;
+          }
+          var symbol = constellation[i];
+          outbuf[0] = gain * symbol[1];
+          outbuf[1] = gain * symbol[0];
+          return outbuf;
+        },
+        lineWidth: 1,
+        size: .02
       }
     }
 
@@ -882,6 +910,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           delay: 1000,
           duration: 2000
         }],
+        ['add', 'vector', doconstellation('pskconst', 1, [[1, 0], [-1, 0]])],
       ],
       [
         'Symbols',
@@ -891,7 +920,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         'Quadrature phase-shift keying (QPSK)',
         'Now there are four dots rather than two; the digital signal must have four possible values instead of two. Since there are more than two, each dot represents more than a single bit; we call these _symbols_. It takes two bits to identify one of four things, so there are two bits per symbol. Angles on this diagram are phase, so there is 90 degrees of phase separation between them. This case with four symbols is called quadrature phase-shift keying, or QPSK.',
         ['remove', '#digpnbase'],
+        ['remove', '#pskconst'],
         ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
+        ['add', 'vector', doconstellation('qpskconst', 1/Math.sqrt(2), qpskconst)],
       ],
       [
         'Quadrature phase-shift keying (QPSK)',
@@ -903,7 +934,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         'Quadrature amplitude modulation (QAM)',
         'Suppose we put in an entire grid of points. Ignoring what it means for the moment, we can see that the diagram implies this ought to work just as well; it\'s got 16 symbols, each therefore carrying 4 bits. This is called quadrature amplitude modulation (QAM), because unlike the PSK we\'ve seen before, the points don\'t lie on a circle — that is, the amplitude as well as the phase is being changed. QAM has very good spectral efficiency — data rate per bandwidth used — because it\'s using all the degrees of freedom available in the signal. However, it does require good linearity in both the transmitter and receiver, since amplitude distinctions are critical. QAM is commonly used in high bandwidth applications; for example, in digital cable TV and internet service, where constellations with up to 256 symbols are used.',
         ['remove', '#digqpskbase'],
+        ['remove', '#qpskconst'],
         ['add', 'curve', dopoints('digqambase', 0x000000, digqambase)],
+        ['add', 'vector', doconstellation('qamconst', 1/Math.sqrt(2), qamconst)],
       ],
       // TODO: FSK in more detail
       [
