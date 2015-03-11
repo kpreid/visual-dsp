@@ -194,6 +194,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     return out;
   })();
   var digqambase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), qamconst);
+  var digqamshap = pshap(digqambase);
+  var digqamkey = DSP.blocks.Rotator(digqamshap, digchfreq);
   
   var diggraph = DSP.Graph([
     dighold,
@@ -205,7 +207,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     digpnkey,
     digpnbase,
     digqpskbase,
-    digqambase
+    digqambase,
+    digqamshap,
+    digqamkey
   ]);
   diggraph();
   
@@ -901,24 +905,25 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ['remove', '#digqpskbase'],
         ['add', 'curve', dopoints('digqambase', 0x000000, digqambase)],
       ],
-      // TODO: QAM
-      // TODO: FSK
+      // TODO: FSK in more detail
       [
         'Digital modulations: wrap',
         'There\'s lots more that can be said about digital modulations, but that\'s all I have for the moment. One thing I notably haven\'t covered is frequency-shift keying (FSK) modulation, which is very common in amateur applications by way of RTTY and APRS. I\'ll write more on the subject later, but for transmitting, FSK is basically FM with discrete levels rather than an audio signal.',
         // TODO: non-ham version of this slide
-        ['remove', '#digpnbase'],
-        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
       ],
       [
         'End',
         'This presentation copyright © 2014, 2015 Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
-        //['animate', 'camera', {
-        //  theta: Math.PI * 0.1
-        //}, {
-        //  delay: 0,
-        //  duration: 2000
-        //}],
+        //['remove', '#digqambase'],
+        ['add', 'curve', docurve('digqamshap', 0x000000, digqamshap)],
+        ['add', 'curve', dountwist('digqamkey', 0x0077FF, 0, digqamkey)],
+        ['animate', 'camera', {
+          phi: Math.PI * 0.7,
+          theta: Math.PI * 0.1
+        }, {
+          delay: 0,
+          duration: 2000
+        }],
       ],
     ];
     var mbscript = script.map(function(step) { return step.slice(2); });
