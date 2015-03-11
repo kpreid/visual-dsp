@@ -296,12 +296,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ksiginterp: 0,
       }
     }
-    function dountwist(id, radiansPerSample, block) {
+    function dountwist(id, color, radiansPerSample, block) {
       var array = block.output;
       var outbuf = [0, 0, 0];
       return {
         id: id,
-        color: 0x0000FF,
+        color: color,
         n: array.length / 2,
         live: true,
         domain: [-timeRangeScale, timeRangeScale],
@@ -649,7 +649,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             duration: 2000
           }]
         ].concat(forfourier(function (i, id) {
-          return ['add', 'curve', dountwist(id, 0, dsbbuf)];
+          return ['add', 'curve', dountwist(id, 0x0000FF, 0, dsbbuf)];
         })).concat(forfourier(function (i, id) {
           return ['add', 'axis', {
             id: id + 'axis',
@@ -792,7 +792,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ['remove', '#digshapook'],
         ['add', 'curve', docurve('digpnhold', 0xAAAAAA, digpnhold)],
         ['add', 'curve', docurve('digpnshap', 0x000000, digpnshap)],
-        ['add', 'curve', docurve('digpnkey', 0x0077FF, digpnkey)],
+        ['add', 'curve', dountwist('digpnkey', 0x0077FF, 0, digpnkey)],
       ],
       [
         'Digital demodulation',
@@ -810,8 +810,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       [
         'Digital demodulation',
         'First, as previously discussed, we perform a frequency shift to return the signal to baseband. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
-        ['remove', '#digpnkey'],
-        ['add', 'curve', dountwist('digpnkey', 0, digpnkey)],
         ['animate', '#digpnkey', {
           kfreq: -digchfreq * 1.02,
           kphase: PI + 0.4  // arbitrary
