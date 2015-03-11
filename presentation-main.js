@@ -159,7 +159,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   ]);
   
   //var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
-  var digdata = new Float32Array([1,0,1,1,0,0,1,1,0,1,1,1,0,0,1,0]);
+  var digdata = new Float32Array(32);
   var diginterp = 40;
   var digsamples = digdata.length * diginterp;
   var digchfreq = 0.30;
@@ -183,6 +183,17 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var digpnshap = pshap(digpnbase);
   var digpnkey = DSP.blocks.Rotator(digpnshap, digchfreq);
   var digqpskbase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), [[-1, -1], [-1, 1], [1, 1], [1, -1]]);
+  var qamconst = (function() {
+    var out = [];
+    for (var i = 0; i < 4; i++) {
+      for (var q = 0; q < 4; q++) {
+        out.push([i - 1.5, q - 1.5]);
+      }
+    }
+    console.log(JSON.stringify(out));
+    return out;
+  })();
+  var digqambase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), qamconst);
   
   var diggraph = DSP.Graph([
     dighold,
@@ -193,7 +204,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     digpnshap,
     digpnkey,
     digpnbase,
-    digqpskbase
+    digqpskbase,
+    digqambase
   ]);
   diggraph();
   
@@ -883,6 +895,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ['remove', '#digpnbase'],
         ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
       ],
+      [
+        'Quadrature amplitude modulation (QAM)',
+        'Suppose we put in an entire grid of points. Ignoring what it means for the moment, we can see that the diagram implies this ought to work just as well; it\'s got 16 symbols, each therefore carrying 4 bits. This is called quadrature amplitude modulation (QAM), because unlike the PSK we\'ve seen before, the points don\'t lie on a circle — that is, the amplitude as well as the phase is being changed. QAM has very good spectral efficiency — data rate per bandwidth used — because it\'s using all the degrees of freedom available in the signal. However, it does require good linearity in both the transmitter and receiver, since amplitude distinctions are critical. QAM is commonly used in high bandwidth applications; for example, in digital cable TV and internet service, where constellations with up to 256 symbols are used.',
+        ['remove', '#digqpskbase'],
+        ['add', 'curve', dopoints('digqambase', 0x000000, digqambase)],
+      ],
       // TODO: QAM
       // TODO: FSK
       [
@@ -983,9 +1001,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       
       if (nextDigUpdate <= Date.now()) {
         nextDigUpdate = Date.now() + digUpdateInterval;
-        var number = Math.abs(Math.round((Math.random() * Math.pow(2, 32)) >> (31 - digdata.length)));
         for (var i = 0; i < digdata.length; i++) {
-          digdata[i] = (number >> i) & 1;
+          digdata[i] = Math.random() > 0.5;
         }
         //console.log(number, Array.prototype.slice.call(digdata));
         diggraph();

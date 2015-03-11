@@ -304,6 +304,7 @@ var VisualDSP_DSP = (function () {
     var input = outputArray(inputb);
     var limit = Math.round(input.length / nbits);
     var output = new Float32Array(limit * 2);
+    console.log(array.length, nbits, limit);
     return {
       inputs: [inputb],
       output: output,
@@ -385,7 +386,7 @@ var VisualDSP_DSP = (function () {
         inIds.push(lookup(inputBlock).id);
       });
       output.push(record.block);
-      console.log(record.id, record.block.run.name, inIds);  // debug
+      //console.log(record.id, record.block.run.name, inIds);  // debug
       
       record.visited = true;
     }
