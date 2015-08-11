@@ -84,7 +84,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var currentSource = null;
   function wireSource() {
     if (currentSource !== null) {
-      currentSource.disconnect(fftnode);
+      currentSource.disconnect(userGainNode);
     }
     currentSource = sources[sourceSelectEl.value] || null;
     if (currentSource === null && sourceSelectEl.value == 'user') {
