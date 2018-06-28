@@ -690,7 +690,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'End',
-        'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
+        'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. https://switchb.org/kpreid/',
         ['animate', 'camera', {
           theta: Math.PI * 0.1
         }, {
