@@ -945,7 +945,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'End',
-        'This presentation copyright © 2014, 2015, 2018 Kevin Reid. Implemented using the MathBox.js framework. https://switchb.org/kpreid/',
+        'This presentation copyright © 2014, 2015, 2018 Kevin Reid. Implemented using the MathBox.js framework. https://visual-dsp.switchb.org/',
         //['remove', '#digqambase'],
         ['add', 'curve', docurve('digqamshap', 0x000000, digqamshap)],
         ['add', 'curve', dountwist('digqamkey', 0x0077FF, 0, digqamkey)],
