@@ -111,7 +111,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       wireSource();
       
       // https://bugzilla.mozilla.org/show_bug.cgi?id=934512
-      // http://stackoverflow.com/q/22860468/99692
+      // https://stackoverflow.com/q/22860468/99692
       // Firefox destroys the media stream source even though it is in use by the audio graph. As a workaround, make a powerless global reference to it.
       // TODO: moot now
       window[Math.random()] = function() { console.log(source); }
@@ -819,13 +819,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }()),
       [
         'On-off keying',
-        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”).',
+        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s digital data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”).',
         // TODO write non-hams version of this slide
         ['add', 'curve', docurve('digook', 0x0077FF, digook)],
       ],
       [
         'On-off keying with pulse shaping',
-        'In order to fix the transitions, we use a pulse shaping filter on the modulating signal. This looks like a mess, and in fact if someone\'s CW transmitter had a keying waveform like this it would be horrible because it lacks crisp transitions, but it does minimize the bandwidth used, and it\'s actually easy for demodulators to handle, as we will see later. Incidentally, the little notches you can see in the signal are imperfections in the filter. We use a truncated filter, one with fewer taps, to save computation at the price of not being quite ideal; the ideal filter would be infinitely long and therefore imposible to implement.',
+        'In order to fix the transitions, we use a pulse shaping filter on the modulating signal. This looks like a mess, and in fact if someone\'s CW transmitter had a keying waveform like this it would be horrible to listen to because it lacks crisp transitions, but it does minimize the bandwidth used, and it\'s actually easy for demodulators to handle, as we will see later. Incidentally, the little notches you can see in the signal are imperfections in the filter. We use a truncated filter, one with fewer taps, to save computation at the price of not being quite ideal; the ideal filter would be infinitely long and therefore imposible to implement.',
         // TODO write non-hams version of this slide
         ['remove', '#digook'],
         ['set', '#dighold', {color: 0xAAAAAA}],
@@ -872,7 +872,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       ],
       [
         'Digital demodulation',
-        'There are a number of algorithms which can be used for this purpose depending on the particular modulation in use. In any case we now have a true baseband signal with no twist to it. The next problem is that we need to recover the bits — to slice this signal up along the time axis.',
+        'There are a number of algorithms which can be used for this purpose depending on properties of the modulation in use. In any case we now have a true baseband signal with no twist to it. The next problem is that we need to recover the bits — to slice this signal up along the time axis.',
         ['animate', '#digpnkey', {
           kfreq: -digchfreq,
         }, {
@@ -941,12 +941,11 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       // TODO: FSK in more detail
       [
         'Digital modulations: wrap',
-        'There\'s lots more that can be said about digital modulations, but that\'s all I have for the moment. One thing I notably haven\'t covered is frequency-shift keying (FSK) modulation, which is very common in amateur applications by way of RTTY and APRS. I\'ll write more on the subject later, but for transmitting, FSK is basically FM with discrete levels rather than an audio signal.',
-        // TODO: non-ham version of this slide
+        'There\'s lots more that can be said about digital modulations, but that\'s all I have for the moment. One thing I notably haven\'t covered is frequency-shift keying (FSK) modulation. Very briefly, FSK is FM with discrete levels rather than an audio signal.',
       ],
       [
         'End',
-        'This presentation copyright © 2014, 2015 Kevin Reid. Implemented using the MathBox.js framework. http://switchb.org/kpreid/',
+        'This presentation copyright © 2014, 2015, 2018 Kevin Reid. Implemented using the MathBox.js framework. https://switchb.org/kpreid/',
         //['remove', '#digqambase'],
         ['add', 'curve', docurve('digqamshap', 0x000000, digqamshap)],
         ['add', 'curve', dountwist('digqamkey', 0x0077FF, 0, digqamkey)],
