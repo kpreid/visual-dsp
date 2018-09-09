@@ -220,7 +220,7 @@ var VisualDSP_DSP = (function () {
     return {
       inputs: [iqinb],
       output: iqout,
-      run: function interpolator() {
+      run: function linearInterpolator() {
         for (var j = 0; j < limit; j += 2) {
           var position = j / (interpolation*2);
           var index = Math.floor(position);
@@ -234,6 +234,94 @@ var VisualDSP_DSP = (function () {
     };
   }
   blocks.LinearInterpolator = LinearInterpolator;
+  
+  function ImpulseInterpolator(iqinb, interpolation) {
+    var iqin = outputArray(iqinb);
+    interpolation = Math.floor(interpolation);
+    var half = Math.floor(interpolation / 4) * 2;
+    var iqout = new Float32Array(iqin.length * interpolation);
+    var inlimit = iqin.length;
+    var outlimit = iqout.length;
+    return {
+      inputs: [iqinb],
+      output: iqout,
+      run: function impulseInterpolator() {
+        var j;
+        for (j = 0; j < outlimit; j += 1) {
+          iqout[j] = 0;
+        }
+        for (var i = 0; i < inlimit; i += 2) {
+          j = half + i * interpolation;
+          iqout[j] = iqin[i];
+          iqout[j + 1] = iqin[i + 1];
+        }
+      }
+    };
+  }
+  blocks.ImpulseInterpolator = ImpulseInterpolator;
+  
+  function RepeatInterpolator(iqinb, interpolation) {
+    var iqin = outputArray(iqinb);
+    interpolation = Math.floor(interpolation);
+    var iqout = new Float32Array(iqin.length * interpolation);
+    var limit = iqin.length;
+    return {
+      inputs: [iqinb],
+      output: iqout,
+      run: function repeatInterpolator() {
+        for (var i = 0; i < limit; i += 2) {
+          var jlim = (i + 2) * interpolation;
+          for (var j = i * interpolation; j < jlim; j += 2) {
+            iqout[j] = iqin[i];
+            iqout[j + 1] = iqin[i + 1];
+          }
+        }
+      }
+    };
+  }
+  blocks.RepeatInterpolator = RepeatInterpolator;
+  
+  function Mapper(inputb, map) {
+    var input = outputArray(inputb);
+    var output = new Float32Array(input.length);
+    var limit = input.length;
+    return {
+      inputs: [inputb],
+      output: output,
+      run: function mapper() {
+        for (var i = 0; i < limit; i++) {
+          output[i] = map[input[i]];
+        }
+      }
+    };
+  }
+  blocks.Mapper = Mapper;
+  
+  // TODO I forget what the proper name for this is
+  function SymbolModulator(inputb, gain, array) {
+    array = array.map(function (s) { return [s[0] * gain, s[1] * gain]; });
+    var nbits = Math.round(Math.log2(array.length));
+    var input = outputArray(inputb);
+    var limit = Math.round(input.length / nbits);
+    var output = new Float32Array(limit * 2);
+    console.log(array.length, nbits, limit);
+    return {
+      inputs: [inputb],
+      output: output,
+      run: function mapper() {
+        for (var i = 0; i < limit; i++) {
+          var code = 0;
+          for (var j = 0; j < nbits; j++) {
+            code = (code << 1) + input[i * nbits + j];
+          }
+          var symbol = array[code];
+          output[i * 2] = symbol[0];
+          output[i * 2 + 1] = symbol[1];
+        }
+      }
+    };
+  }
+  blocks.SymbolModulator = SymbolModulator;
   
   exports.blocks = Object.freeze(blocks);
   
@@ -298,7 +386,7 @@ var VisualDSP_DSP = (function () {
         inIds.push(lookup(inputBlock).id);
       });
       output.push(record.block);
-      console.log(record.id, record.block.run.name, inIds);  // debug
+      //console.log(record.id, record.block.run.name, inIds);  // debug
       
       record.visited = true;
     }

@@ -111,7 +111,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       wireSource();
       
       // https://bugzilla.mozilla.org/show_bug.cgi?id=934512
-      // http://stackoverflow.com/q/22860468/99692
+      // https://stackoverflow.com/q/22860468/99692
       // Firefox destroys the media stream source even though it is in use by the audio graph. As a workaround, make a powerless global reference to it.
       // TODO: moot now
       window[Math.random()] = function() { console.log(source); }
@@ -133,6 +133,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   
   var interpolation = 5;
   var chfreq = 0.30;
+  
   var audioin = DSP.blocks.ArraySource(audioarray);
   var modulatingam = DSP.blocks.AMModulator(audioin);
   var modulatingfm = DSP.blocks.FMModulator(audioin, 0.75);
@@ -145,6 +146,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   var product = DSP.blocks.Multiply(fmout, demodrot);
   var audioh = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_highpass);
   var audiol = DSP.blocks.FIRFilter(dsbbuf, 2, -Math.floor(audio_lowpass.length / 2), audio_lowpass);
+  
   var g = DSP.Graph([
     modulatingam,
     modulatingfm,
@@ -155,6 +157,62 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     audioh,
     audiol,
   ]);
+  
+  //var digdata = new Float32Array([0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1]);
+  var digdata = new Float32Array(32);
+  var diginterp = 40;
+  var digsamples = digdata.length * diginterp;
+  var digchfreq = 0.30;
+  var digUpdateInterval = 1000;
+  
+  // firdes.root_raised_cosine(gain=40.0, sampling_freq=40, symbol_rate=1, alpha=0.25, ntaps=200)
+  var dig_rrc_taps = [0.06413525342941284, 0.06912656128406525, 0.07376259565353394, 0.07799314707517624, 0.08176935464143753, 0.08504420518875122, 0.08777286857366562, 0.08991317451000214, 0.09142597764730453, 0.09227557480335236, 0.09243007004261017, 0.09186173975467682, 0.09054736793041229, 0.08846860378980637, 0.0856122076511383, 0.08197031915187836, 0.07754074782133102, 0.07232708483934402, 0.06633895635604858, 0.059592101722955704, 0.05210845172405243, 0.043916214257478714, 0.03504985198378563, 0.025550054386258125, 0.015463657677173615, 0.004843507893383503, -0.006251695565879345, -0.01775762066245079, -0.029604556038975716, -0.04171771556138992, -0.054017573595047, -0.06642024964094162, -0.07883792370557785, -0.09117928892374039, -0.10335005819797516, -0.11525343358516693, -0.12679073214530945, -0.13786186277866364, -0.1483660340309143, -0.15820223093032837, -0.16726994514465332, -0.1754697859287262, -0.18270409107208252, -0.18887759745121002, -0.19389811158180237, -0.19767707586288452, -0.20013023912906647, -0.20117828249931335, -0.20074740052223206, -0.19876980781555176, -0.19518440961837769, -0.18993720412254333, -0.18298178911209106, -0.1742798388004303, -0.16380146145820618, -0.1515255719423294, -0.13744015991687775, -0.12154260277748108, -0.10383985191583633, -0.08434852957725525, -0.0630950927734375, -0.0401158332824707, -0.015456845983862877, 0.010826030746102333, 0.03866736963391304, 0.06799235194921494, 0.09871701151132584, 0.13074859976768494, 0.16398584842681885, 0.19831956923007965, 0.2336329221725464, 0.26980212330818176, 0.30669692158699036, 0.34418120980262756, 0.3821137547492981, 0.4203488230705261, 0.45873698592185974, 0.4971257448196411, 0.5353603959083557, 0.573284924030304, 0.6107425689697266, 0.6475769877433777, 0.6836327314376831, 0.7187562584877014, 0.7527968287467957, 0.7856071591377258, 0.8170443177223206, 0.8469705581665039, 0.8752537369728088, 0.9017686247825623, 0.926396906375885, 0.949028730392456, 0.9695621728897095, 0.987904965877533, 1.0039739608764648, 1.017696499824524, 1.02901029586792, 1.037863850593567, 1.0442167520523071, 1.0480402708053589, 1.049316644668579, 1.0480402708053589, 1.0442167520523071, 1.037863850593567, 1.02901029586792, 1.017696499824524, 1.0039739608764648, 0.987904965877533, 0.9695621728897095, 0.949028730392456, 0.926396906375885, 0.9017686247825623, 0.8752537369728088, 0.8469705581665039, 0.8170443177223206, 0.7856071591377258, 0.7527968287467957, 0.7187562584877014, 0.6836327314376831, 0.6475769877433777, 0.6107425689697266, 0.573284924030304, 0.5353603959083557, 0.4971257448196411, 0.45873698592185974, 0.4203488230705261, 0.3821137547492981, 0.34418120980262756, 0.30669692158699036, 0.26980212330818176, 0.2336329221725464, 0.19831956923007965, 0.16398584842681885, 0.13074859976768494, 0.09871701151132584, 0.06799235194921494, 0.03866736963391304, 0.010826030746102333, -0.015456845983862877, -0.0401158332824707, -0.0630950927734375, -0.08434852957725525, -0.10383985191583633, -0.12154260277748108, -0.13744015991687775, -0.1515255719423294, -0.16380146145820618, -0.1742798388004303, -0.18298178911209106, -0.18993720412254333, -0.19518440961837769, -0.19876980781555176, -0.20074740052223206, -0.20117828249931335, -0.20013023912906647, -0.19767707586288452, -0.19389811158180237, -0.18887759745121002, -0.18270409107208252, -0.1754697859287262, -0.16726994514465332, -0.15820223093032837, -0.1483660340309143, -0.13786186277866364, -0.12679073214530945, -0.11525343358516693, -0.10335005819797516, -0.09117928892374039, -0.07883792370557785, -0.06642024964094162, -0.054017573595047, -0.04171771556138992, -0.029604556038975716, -0.01775762066245079, -0.006251695565879345, 0.004843507893383503, 0.015463657677173615, 0.025550054386258125, 0.03504985198378563, 0.043916214257478714, 0.05210845172405243, 0.059592101722955704, 0.06633895635604858, 0.07232708483934402, 0.07754074782133102, 0.08197031915187836, 0.0856122076511383, 0.08846860378980637, 0.09054736793041229, 0.09186173975467682, 0.09243007004261017, 0.09227557480335236, 0.09142597764730453, 0.08991317451000214, 0.08777286857366562, 0.08504420518875122, 0.08176935464143753, 0.07799314707517624, 0.07376259565353394, 0.06912656128406525, 0.06413525342941284];
+  function pshap(input) {
+    return DSP.blocks.FIRFilter(DSP.blocks.ImpulseInterpolator(input, diginterp), 2, -Math.floor(dig_rrc_taps.length / 2) - 10 /* fudge factor */, dig_rrc_taps);
+  }
+  
+  var digin = DSP.blocks.ArraySource(digdata);
+  var digbaseband = DSP.blocks.ToComplex(digin);
+  var dighold = DSP.blocks.RepeatInterpolator(digbaseband, diginterp);
+  var digshap = pshap(digbaseband);
+  var digshapook = DSP.blocks.Rotator(digshap, digchfreq);
+  var digook = DSP.blocks.Rotator(dighold, digchfreq);
+  var digpn = DSP.blocks.Mapper(digin, [-1, 1]);
+  var digpnbase = DSP.blocks.ToComplex(digpn);
+  var digpnhold = DSP.blocks.RepeatInterpolator(digpnbase, diginterp);
+  var digpnshap = pshap(digpnbase);
+  var digpnkey = DSP.blocks.Rotator(digpnshap, digchfreq);
+  var qpskconst = [[-1, -1], [-1, 1], [1, 1], [1, -1]];
+  var digqpskbase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), qpskconst);
+  var qamconst = (function() {
+    var out = [];
+    for (var i = 0; i < 4; i++) {
+      for (var q = 0; q < 4; q++) {
+        out.push([i - 1.5, q - 1.5]);
+      }
+    }
+    console.log(JSON.stringify(out));
+    return out;
+  })();
+  var digqambase = DSP.blocks.SymbolModulator(digin, 1/Math.sqrt(2), qamconst);
+  var digqamshap = pshap(digqambase);
+  var digqamkey = DSP.blocks.Rotator(digqamshap, digchfreq);
+  
+  var diggraph = DSP.Graph([
+    dighold,
+    digook,
+    digshap,
+    digshapook,
+    digpnhold,
+    digpnshap,
+    digpnkey,
+    digpnbase,
+    digqpskbase,
+    digqambase,
+    digqamshap,
+    digqamkey
+  ]);
+  diggraph();
   
   var twosig1 = DSP.blocks.Siggen(sampleCount, function() { return 0.3; });
   var twosig2 = DSP.blocks.Siggen(sampleCount, function() { return 10; });
@@ -197,7 +255,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     
     function axisi(v) { return v == 2 ? 'I' : ''; }
     function axisq(v) { return v == 2 ? 'Q' : ''; }
-    mathbox.axis({
+    var iaxisdef = {
       id: 'iaxis',
       axis: 1,
       color: 0x777777,
@@ -207,8 +265,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       arrow: false,
       labels: false,
       formatter: axisi
-    });
-    mathbox.axis({
+    };
+    var qaxisdef = {
       id: 'qaxis',
       axis: 0,
       color: 0x777777,
@@ -218,7 +276,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       arrow: false,
       labels: false,
       formatter: axisq
-    });
+    };
+    mathbox.axis(iaxisdef);
+    mathbox.axis(qaxisdef);
     mathbox.axis({
       id: 'taxis',
       axis: 2,
@@ -257,19 +317,26 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         ksiginterp: 0,
       }
     }
-    function dountwist(id, radiansPerSample, block) {
+    function dopoints(id, color, block) {
+      var record = docurve(id, color, block);
+      record.points = true;
+      record.line = false;
+      record.pointSize = 8;
+      return record;
+    }
+    function dountwist(id, color, radiansPerSample, block) {
       var array = block.output;
       var outbuf = [0, 0, 0];
       return {
         id: id,
-        color: 0x0000FF,
+        color: color,
         n: array.length / 2,
         live: true,
         domain: [-timeRangeScale, timeRangeScale],
         expression: function (x, i) {
           var vi = array[i * 2];
           var vq = array[i * 2 + 1];
-          var phase = i * this.get('kfreq');
+          var phase = this.get('kphase') + i * this.get('kfreq');
           var s = sin(phase);
           var c = cos(phase);
           var scale = 1;
@@ -280,6 +347,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
+        kphase: 0,
       }
     }
     function dountwistsum(id, radiansPerSample, block) {
@@ -296,6 +364,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           if (i == 0) {
             return zero;
           }
+          var zerophase = this.get('kphase');
           var freq = this.get('kfreq');
           var sumi = 0;
           var sumq = 0;
@@ -303,7 +372,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
           for (var i = 0; i < limit; i++) {
             var vi = array[i * 2];
             var vq = array[i * 2 + 1];
-            var phase = i * freq;
+            var phase = zerophase + i * freq;
             var s = sin(phase);
             var c = cos(phase);
             sumq += (s * vi + c * vq);
@@ -317,6 +386,34 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
         },
         lineWidth: 2,
         kfreq: radiansPerSample,
+        kphase: 0,
+      }
+    }
+    
+    function doconstellation(id, gain, constellation) {
+      var n = constellation.length;
+      var outbuf = [0, 0, 0];
+      return {
+        id: id,
+        color: 0xFF5555,
+        n: n,
+        live: false,
+        domain: [0, 1],  // unused
+        line: true,
+        arrow: true,
+        expression: function (i, end) {
+          if (end) {
+            outbuf[2] = timeRangeScale;
+          } else {
+            outbuf[2] = -timeRangeScale;
+          }
+          var symbol = constellation[i];
+          outbuf[0] = gain * symbol[1];
+          outbuf[1] = gain * symbol[0];
+          return outbuf;
+        },
+        lineWidth: 1,
+        size: .02
       }
     }
 
@@ -607,7 +704,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
             duration: 2000
           }]
         ].concat(forfourier(function (i, id) {
-          return ['add', 'curve', dountwist(id, 0, dsbbuf)];
+          return ['add', 'curve', dountwist(id, 0x0000FF, 0, dsbbuf)];
         })).concat(forfourier(function (i, id) {
           return ['add', 'axis', {
             id: id + 'axis',
@@ -686,12 +783,174 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
       }()),
       [
         'Real signals',
-        'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
+        'This graphic also shows the relationship of complex-valued signals to real signals. The spectrum of a real signal, which this is, is always symmetric about zero. In other words, a real signal cannot distinguish negative frequencies from positive frequencies, where a complex signal can. A real sinusoid is equivalent to the sum of two complex sinusoids of opposite frequency — the imaginary components cancel out leaving the real component.'
+      ],
+      [
+        'Real signals',
+        'That\'s all I have to say about the Fourier transform.'
+      ],
+      (function () {
+        return [
+          'Digital modulation',
+          'Up to this point, I\'ve been talking about digital signal processing — that is, signal processing as performed by a digital computer. Now, I\'m going to talk about digital _modulation_ — that is, signals which carry digital data. Here we see a digital signal as you might have it in an introduction to digital logic — two levels, representing binary digits one and zero, and sharp transitions between the two.',
+          ['animate', 'camera', {
+            phi: PI,
+            theta: almost_zero_theta
+          }, {
+            delay: 0,
+            duration: 1000
+          }],
+          ['add', 'axis', Object.create(iaxisdef, {labels:{value:true}})],
+          ['add', 'axis', Object.create(qaxisdef, {labels:{value:true}})],
+          ['add', 'curve', docurve('dighold', 0x000000, dighold), {
+            delay: 700,
+          }],
+          //['set', '#dighold', {
+          //  points: true,
+          //  line: false,
+          //}]
+        ].concat(forfourier(function (i, id) {
+          return ['remove', '#' + id + 'sum'];
+        })).concat(forfourier(function (i, id) {
+          return ['remove', '#' + id];
+        })).concat(forfourier(function (i, id) {
+          return ['remove', '#' + id + 'axis'];
+        }));
+      }()),
+      [
+        'On-off keying',
+        'Here\'s the simplest digital modulation, known as on-off keying. For amateur radio operators, this is the CW mode, though the bit sequence here is not Morse code. This is actually identical to the amplitude modulation I showed you at the beginning, except that instead of the modulating signal being audio, centered about +1, it\'s digital data and it takes on only the values one and zero. This is a very simple modulation to transmit, and very power-efficient, because you just switch your transmitter on and off. However, note that because of the sharp transitions in amplitude, this signal as shown has a very wide bandwidth at those transitions (in amateur radio terms, “key clicks”).',
+        // TODO write non-hams version of this slide
+        ['add', 'curve', docurve('digook', 0x0077FF, digook)],
+      ],
+      [
+        'On-off keying with pulse shaping',
+        'In order to fix the transitions, we use a pulse shaping filter on the modulating signal. This looks like a mess, and in fact if someone\'s CW transmitter had a keying waveform like this it would be horrible to listen to because it lacks crisp transitions, but it does minimize the bandwidth used, and it\'s actually easy for demodulators to handle, as we will see later. Incidentally, the little notches you can see in the signal are imperfections in the filter. We use a truncated filter, one with fewer taps, to save computation at the price of not being quite ideal; the ideal filter would be infinitely long and therefore imposible to implement.',
+        // TODO write non-hams version of this slide
+        ['remove', '#digook'],
+        ['set', '#dighold', {color: 0xAAAAAA}],
+        ['add', 'curve', docurve('digshap', 0x000000, digshap)],
+        ['add', 'curve', docurve('digshapook', 0x0077FF, digshapook)],
+      ],
+      [
+        'On-off keying with pulse shaping',
+        'Now let\'s look at another type of modulation.',
+      ],
+      [
+        'Phase-shift keying',
+        'Here we\'ve taken the modulating signal and replaced the zeroes with minus ones. That is, we\'re multiplying the carrier wave by minus one. This has the effect of producing a _phase shift_ by 180 degrees, while leaving the amplitude the same. However, we\'ve introduced an ambiguity — when the receiver starts receiving the signal, it doesn\'t have any reference phase, and so a phase transition could be from zero to one or one to zero. This isn\'t a serious problem, because more synchronization information is needed to make sense of the bits anyway — a known sequence at the beginning of the transmission packet can resolve the ambiguity. Or you can use a differential encoding, where a phase transition stands for one and no transition stands for zero, or vice versa.',
+        ['remove', '#dighold'],
+        ['remove', '#digshap'],
+        ['remove', '#digshapook'],
+        ['add', 'curve', docurve('digpnhold', 0xAAAAAA, digpnhold)],
+        ['add', 'curve', docurve('digpnshap', 0x000000, digpnshap)],
+        ['add', 'curve', dountwist('digpnkey', 0x0077FF, 0, digpnkey)],
+      ],
+      [
+        'Digital demodulation',
+        'Before I discuss more complex modulations, let\'s look at what it takes to demodulate this signal, if nothing else so this fairly messy picture gets cleaner. What we have in this case is a carrier wave with occasional phase shifts; we need to recover the original bits.',
+        ['remove', '#digpnhold'],
+        ['remove', '#digpnshap'],
+        ['animate', 'camera', {
+          phi: Math.PI * 0.8,
+          theta: 0.05
+        }, {
+          delay: 500,
+          duration: 1000
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'First, as we did with the previous analog signals, we perform a frequency shift to return the signal to baseband, using the frequency the receiver is set to receive. However, because no two independently running oscillators are going to be at exactly the same frequency, this won\'t give perfect results; we need to perform a final correction.',
+        ['animate', '#digpnkey', {
+          kfreq: -digchfreq * 1.02,
+          kphase: 0.4  // arbitrary
+        }, {
+          delay: 0,
+          duration: 7000,
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'There are a number of algorithms which can be used for this purpose depending on properties of the modulation in use. In any case we now have a true baseband signal with no twist to it. The next problem is that we need to recover the bits — to slice this signal up along the time axis.',
+        ['animate', '#digpnkey', {
+          kfreq: -digchfreq,
+        }, {
+          delay: 0,
+          duration: 1000,
+        }],
+        ['animate', '#digpnkey', {
+          kphase: 0,
+        }, {
+          delay: 1000,
+          duration: 400,
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'Remember, this is a digital signal, so we already have it sliced up in a sense, but we have far too many samples; we want instead to have exactly one sample per bit. To do this, we need to take those samples in a way which is synchronized with the digital clock which generated the bits in the first place at the transmitter; this is necessary to ensure we don\'t take samples halfway between two bits and read nonsense. Again, there are various algorithms for this synchronization, and I\'m going to skip the details of that.',
+        ['set', '#digpnkey', {
+          points: true,
+          line: false,
+        }]
+      ],
+      [
+        'Digital demodulation',
+        'So, here we have the original bits — still represented as plus and minus one. I\'ve also conveniently assumed we\'ve recovered the exact original phase so they\'re lined up on the I axis.',
+        ['remove', '#digpnkey'],
+        ['add', 'curve', dopoints('digpnbase', 0x000000, digpnbase)],
+      ],
+      [
+        'Digital demodulation',
+        'Now let\'s take the end-on view. Here, we stop being able to see the actual data, and we instead see just all the _possible_ positions in the signal. This is known as a constellation diagram, and it is a very useful representation of digital signals.',
+        ['animate', 'camera', {
+          phi: Math.PI / 2,
+          theta: 0.00
+        }, {
+          delay: 1000,
+          duration: 2000
+        }],
+        ['add', 'vector', doconstellation('pskconst', 1, [[1, 0], [-1, 0]])],
+      ],
+      [
+        'Symbols',
+        'Notice that there\'s lots of empty space in this diagram — we\'re only using one dimension, but there are two available. Let\'s do that.',
+      ],
+      [
+        'Quadrature phase-shift keying (QPSK)',
+        'Now there are four dots rather than two; the digital signal must have four possible values instead of two. Since there are more than two, each dot represents more than a single bit; we call these _symbols_. It takes two bits to identify one of four things, so there are two bits per symbol. Angles on this diagram are phase, so there is 90 degrees of phase separation between them. This case with four symbols is called quadrature phase-shift keying, or QPSK.',
+        ['remove', '#digpnbase'],
+        ['remove', '#pskconst'],
+        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
+        ['add', 'vector', doconstellation('qpskconst', 1/Math.sqrt(2), qpskconst)],
+      ],
+      [
+        'Quadrature phase-shift keying (QPSK)',
+        'In general, you can have PSK with any number of symbols, but as the number of symbols increases the decreasing separation means that a better signal-to-noise ratio is required to receive the symbols without error. If there were noise in this signal, then you would see it on the diagram as these single points becoming fuzzy clouds of samples; a decoding error occurs when the noise pushes one of the samples into being closer to a different symbol than the correct symbol.',
+        ['remove', '#digpnbase'],
+        ['add', 'curve', dopoints('digqpskbase', 0x000000, digqpskbase)],
+      ],
+      [
+        'Quadrature amplitude modulation (QAM)',
+        'Suppose we put in an entire grid of points. Ignoring what it means for the moment, we can see that the diagram implies this ought to work just as well; it\'s got 16 symbols, each therefore carrying 4 bits. This is called quadrature amplitude modulation (QAM), because unlike the PSK we\'ve seen before, the points don\'t lie on a circle — that is, the amplitude as well as the phase is being changed. QAM has very good spectral efficiency — data rate per bandwidth used — because it\'s using all the degrees of freedom available in the signal. However, it does require good linearity in both the transmitter and receiver, since amplitude distinctions are critical. QAM is commonly used in high bandwidth applications; for example, in digital cable TV and internet service, where constellations with up to 256 symbols are used.',
+        ['remove', '#digqpskbase'],
+        ['remove', '#qpskconst'],
+        ['add', 'curve', dopoints('digqambase', 0x000000, digqambase)],
+        ['add', 'vector', doconstellation('qamconst', 1/Math.sqrt(2), qamconst)],
+      ],
+      // TODO: FSK in more detail
+      [
+        'Digital modulations: wrap',
+        'There\'s lots more that can be said about digital modulations, but that\'s all I have for the moment. One thing I notably haven\'t covered is frequency-shift keying (FSK) modulation. Very briefly, FSK is FM with discrete levels rather than an audio signal.',
       ],
       [
         'End',
-        'This presentation written by Kevin Reid. Implemented using the MathBox.js framework. https://switchb.org/kpreid/',
+        'This presentation copyright © 2014, 2015, 2018 Kevin Reid. Implemented using the MathBox.js framework. https://switchb.org/kpreid/',
+        //['remove', '#digqambase'],
+        ['add', 'curve', docurve('digqamshap', 0x000000, digqamshap)],
+        ['add', 'curve', dountwist('digqamkey', 0x0077FF, 0, digqamkey)],
         ['animate', 'camera', {
+          phi: Math.PI * 0.7,
           theta: Math.PI * 0.1
         }, {
           delay: 0,
@@ -744,6 +1003,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
   
   var paused = false;
   var leveltrigger = false;
+  var nextDigUpdate = 0;
   document.body.addEventListener('keydown', function (event) {
     if (event.keyCode == 0x20) {
       paused = !paused;
@@ -775,6 +1035,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
     
     if (!paused || (mbdirector && mbdirector.step == demodStep)) {
       g();
+      
+      if (nextDigUpdate <= Date.now()) {
+        nextDigUpdate = Date.now() + digUpdateInterval;
+        for (var i = 0; i < digdata.length; i++) {
+          digdata[i] = Math.random() > 0.5;
+        }
+        //console.log(number, Array.prototype.slice.call(digdata));
+        diggraph();
+      }
     }
 
     if (leveltrigger) {
